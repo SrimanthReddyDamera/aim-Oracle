@@ -1,0 +1,12 @@
+# Core Domain & Data Contracts
+pydantic>=2.10.0
+
+# HTTP Client (Async/Sync Gateway to Ollama)
+httpx>=0.27.0
+
+# Hardware & Memory Telemetry Profiling
+psutil>=5.9.0
+
+# Testing & Quality Assurance
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
