@@ -52,6 +52,8 @@ htmlcov/
 *.db
 *.db-shm
 *.db-wal
+storage/*
+!storage/.gitkeep
 data/
 lancedb_data/
 .lancedb/

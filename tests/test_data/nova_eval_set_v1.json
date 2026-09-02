@@ -1,0 +1,285 @@
+{
+  "corpus_name": "NOVA Project Phoenix Operational Corpus",
+  "version": "1.0",
+  "benchmark_tier": "Initial Controlled Evaluation Suite v1",
+  "total_documents": 6,
+  "total_chunks": 28,
+  "description": "Initial controlled evaluation suite consisting of 23 diagnostic queries across 6 query topologies.",
+  "evaluation_philosophy": {
+    "retrieval_layer_role": "Retrieve all topically relevant evidence, including historical and contradictory claims. Contradictory evidence receives positive credit for discovery.",
+    "reasoning_layer_role": "Reconcile conflicting claims using recency, authority, and incident rollback states to determine ground truth."
+  },
+  "test_cases": [
+    {
+      "question_id": "Q-01",
+      "topology": "direct_exact",
+      "query": "What was the incident identifier for the Redis production regression?",
+      "expected_conclusion": "INC-402",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c000", "DOC-NOVA-INC-402#c002"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-ARCH-OLD#c000"]
+      }
+    },
+    {
+      "question_id": "Q-02",
+      "topology": "direct_exact",
+      "query": "What is the document code for the European Financial Security Authority compliance policy?",
+      "expected_conclusion": "REG-SEC-2026-EU",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-COMPLIANCE#c001"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-ARCH-OLD#c001"]
+      }
+    },
+    {
+      "question_id": "Q-03",
+      "topology": "direct_exact",
+      "query": "What change request number was submitted for the emergency Friday morning maintenance window?",
+      "expected_conclusion": "CR-904",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-CAB#c002"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c001"]
+      }
+    },
+    {
+      "question_id": "Q-04",
+      "topology": "direct_exact",
+      "query": "Who was the lead investigator assigned to the incident INC-402 post-mortem?",
+      "expected_conclusion": "Alex Chen (Site Reliability Engineering)",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c001"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-CAB#c001"]
+      }
+    },
+    {
+      "question_id": "Q-05",
+      "topology": "conceptual_paraphrased",
+      "query": "What operational protocol forbids deploying risky datastore migrations immediately prior to a major platform rollout?",
+      "expected_conclusion": "NOVA Production Safeguard Policy Rule 4",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-CAB#c004"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c004"]
+      }
+    },
+    {
+      "question_id": "Q-06",
+      "topology": "conceptual_paraphrased",
+      "query": "How are regional checkout portals being consolidated into a single low-latency cluster?",
+      "expected_conclusion": "Project Phoenix consolidates regional checkout gateways into a unified transaction processing platform.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-OVERVIEW#c002"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-PAYMENT#c001"]
+      }
+    },
+    {
+      "question_id": "Q-07",
+      "topology": "conceptual_paraphrased",
+      "query": "What architectural requirement mandates cryptographic identity verification for both client and server on cache sockets?",
+      "expected_conclusion": "Payment Gateway v2 enforces mutual TLS 1.3 (mTLS 1.3) zero-trust verification on all TCP socket connections.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-PAYMENT#c002"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-COMPLIANCE#c002"]
+      }
+    },
+    {
+      "question_id": "Q-08",
+      "topology": "conceptual_paraphrased",
+      "query": "What financial and operational penalties are mandated by European regulators for unencrypted financial transaction channels?",
+      "expected_conclusion": "Tier-1 Regulatory Breach resulting in mandatory license suspension and €20M fine or 4% of global turnover.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-COMPLIANCE#c003"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-PAYMENT#c003"]
+      }
+    },
+    {
+      "question_id": "Q-09",
+      "topology": "temporal_conflict",
+      "query": "What version of the Redis cache cluster is active in production, and does it support mTLS 1.3?",
+      "expected_conclusion": "Redis v5.4.12 is active and does NOT support mTLS 1.3 (superseding the outdated claim of v7.2).",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c004"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-ARCH-OLD#c002"]
+      }
+    },
+    {
+      "question_id": "Q-10",
+      "topology": "temporal_conflict",
+      "query": "Was the Redis v7.2 upgrade completed successfully in Sprint 41?",
+      "expected_conclusion": "No; although Sprint 41 documents claimed completion, it failed in production on October 20 with memory segmentation faults and was rolled back.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c002", "DOC-NOVA-INC-402#c003"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c004"]
+      }
+    },
+    {
+      "question_id": "Q-11",
+      "topology": "temporal_conflict",
+      "query": "Is an emergency maintenance window scheduled for Friday morning before the Phoenix launch?",
+      "expected_conclusion": "No; Marcus Vance requested a Friday 06:00 UTC window (CR-904), but it was unanimously rejected by CAB.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-CAB#c003"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-CAB#c002"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c003"]
+      }
+    },
+    {
+      "question_id": "Q-12",
+      "topology": "temporal_conflict",
+      "query": "What transport security mechanism is currently active on the production Redis VPC connection?",
+      "expected_conclusion": "Unencrypted internal VPC transport with password authentication only; mTLS 1.3 is not active.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c004"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-COMPLIANCE#c002"]
+      }
+    },
+    {
+      "question_id": "Q-13",
+      "topology": "multi_hop_causal",
+      "query": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+      "expected_conclusion": "No. Phoenix cannot launch Friday because Payment Gateway v2 requires Redis with mTLS 1.3, but Redis is running v5.4.12 without mTLS following incident INC-402, and CAB rejected the emergency Friday upgrade.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [
+          "DOC-NOVA-OVERVIEW#c003",
+          "DOC-NOVA-INC-402#c004",
+          "DOC-NOVA-PAYMENT#c003",
+          "DOC-NOVA-CAB#c003"
+        ],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-COMPLIANCE#c001"]
+      }
+    },
+    {
+      "question_id": "Q-14",
+      "topology": "multi_hop_causal",
+      "query": "Why will European storefronts experience complete checkout failure if cutover proceeds as scheduled on Friday?",
+      "expected_conclusion": "Because Payment Gateway v2 strictly requires mTLS 1.3, the active Redis v5.4 cluster lacks mTLS, causing TLS handshake failure that drops 100% of transaction processing threads.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [
+          "DOC-NOVA-INC-402#c004",
+          "DOC-NOVA-PAYMENT#c003",
+          "DOC-NOVA-CAB#c003"
+        ],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c002"]
+      }
+    },
+    {
+      "question_id": "Q-15",
+      "topology": "multi_hop_causal",
+      "query": "How does the rollback of INC-402 create an immediate risk of a Tier-1 regulatory license suspension under Project Phoenix?",
+      "expected_conclusion": "Rollback left Redis on v5.4 without mTLS 1.3, violating EFSA Section 4 which mandates mTLS 1.3 for EEA transfers; operating payment workflows without it triggers an automatic Tier-1 breach and license suspension.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [
+          "DOC-NOVA-INC-402#c004",
+          "DOC-NOVA-PAYMENT#c002",
+          "DOC-NOVA-COMPLIANCE#c002",
+          "DOC-NOVA-COMPLIANCE#c003"
+        ],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-ARCH-OLD#c003"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c001"]
+      }
+    },
+    {
+      "question_id": "Q-16",
+      "topology": "multi_hop_causal",
+      "query": "What sequence of events and approvals is required before Project Phoenix can achieve compliant production status?",
+      "expected_conclusion": "Complete dry-run rollback validation scripts, pass 48 hours of staging soak tests, execute Redis v7 upgrade during the Tuesday Oct 28 window, and verify mTLS 1.3 handshakes.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [
+          "DOC-NOVA-CAB#c004",
+          "DOC-NOVA-CAB#c005",
+          "DOC-NOVA-PAYMENT#c002"
+        ],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-CAB#c002"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c003"]
+      }
+    },
+    {
+      "question_id": "Q-17",
+      "topology": "distractor_heavy",
+      "query": "What decision did Sarah Lin make regarding the maintenance window requested by Marcus Vance?",
+      "expected_conclusion": "Sarah Lin and the DBA team unanimously rejected the Friday morning maintenance window (CR-904).",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-CAB#c003", "DOC-NOVA-CAB#c004"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-CAB#c002"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-CAB#c001", "DOC-NOVA-OVERVIEW#c001"]
+      }
+    },
+    {
+      "question_id": "Q-18",
+      "topology": "distractor_heavy",
+      "query": "What specific technical symptoms were observed during the failed deployment on October 20 at 14:20 UTC?",
+      "expected_conclusion": "Memory segmentation faults occurred in worker nodes under load, resulting in 42% transaction packet drops.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-INC-402#c002"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-INC-402#c001", "DOC-NOVA-OVERVIEW#c003"]
+      }
+    },
+    {
+      "question_id": "Q-19",
+      "topology": "distractor_heavy",
+      "query": "Under what specific conditions did the Change Advisory Board approve a future maintenance window for Redis v7.2?",
+      "expected_conclusion": "Approved for Tuesday, October 28, 2026 at 02:00 UTC, conditional on passing 48 hours of staging soak tests.",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-CAB#c005"],
+        "relevant_contradictory_or_stale_evidence": ["DOC-NOVA-CAB#c002"],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-CAB#c000"]
+      }
+    },
+    {
+      "question_id": "Q-20",
+      "topology": "distractor_heavy",
+      "query": "What exact percentage of transaction processing threads are dropped if TLS handshake fails on the Payment Gateway?",
+      "expected_conclusion": "100% of transaction processing threads are dropped (distinct from the 42% packet drop observed during INC-402).",
+      "evidence_classification": {
+        "primary_supporting_evidence": ["DOC-NOVA-PAYMENT#c003"],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-INC-402#c002"]
+      }
+    },
+    {
+      "question_id": "Q-21",
+      "topology": "unanswerable_out_of_bounds",
+      "query": "What is the average query latency and replication lag for the PostgreSQL primary-replica cluster?",
+      "expected_conclusion": "UNANSWERABLE: The corpus contains no information about PostgreSQL query latency or replication lag.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c004", "DOC-NOVA-ARCH-OLD#c002"]
+      }
+    },
+    {
+      "question_id": "Q-22",
+      "topology": "unanswerable_out_of_bounds",
+      "query": "Who is the lead engineer responsible for the mobile iOS biometric checkout SDK?",
+      "expected_conclusion": "UNANSWERABLE: The corpus does not mention the mobile iOS checkout SDK or its lead engineer.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-PAYMENT#c001", "DOC-NOVA-OVERVIEW#c001"]
+      }
+    },
+    {
+      "question_id": "Q-23",
+      "topology": "unanswerable_out_of_bounds",
+      "query": "What Kubernetes Helm chart version was used to deploy the staging environment ingress controller?",
+      "expected_conclusion": "UNANSWERABLE: The corpus contains no information about Kubernetes Helm chart versions or ingress controllers.",
+      "evidence_classification": {
+        "primary_supporting_evidence": [],
+        "relevant_contradictory_or_stale_evidence": [],
+        "irrelevant_distractor_evidence": ["DOC-NOVA-OVERVIEW#c004", "DOC-NOVA-INC-402#c004"]
+      }
+    }
+  ]
+}

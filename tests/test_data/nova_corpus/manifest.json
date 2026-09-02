@@ -1,0 +1,54 @@
+{
+  "corpus_name": "NOVA Project Phoenix Operational Corpus",
+  "version": "1.0",
+  "documents": [
+    {
+      "source_id": "DOC-NOVA-OVERVIEW",
+      "filename": "DOC-NOVA-OVERVIEW.md",
+      "title": "Project Phoenix: Production Release Plan v2.4",
+      "author": "Marcus Vance",
+      "date": "2026-10-21",
+      "status": "Scheduled"
+    },
+    {
+      "source_id": "DOC-NOVA-ARCH-OLD",
+      "filename": "DOC-NOVA-ARCH-OLD.md",
+      "title": "NOVA Platform Architecture Specification v1.1",
+      "author": "Enterprise Architecture Working Group",
+      "date": "2026-09-15",
+      "status": "Superseded / Outdated"
+    },
+    {
+      "source_id": "DOC-NOVA-INC-402",
+      "filename": "DOC-NOVA-INC-402.md",
+      "title": "Post-Mortem: INC-402 Critical Production Regression",
+      "author": "Alex Chen",
+      "date": "2026-10-21",
+      "status": "Production Reality"
+    },
+    {
+      "source_id": "DOC-NOVA-PAYMENT",
+      "filename": "DOC-NOVA-PAYMENT.md",
+      "title": "Payment Gateway v2 Technical Integration Specification",
+      "author": "Core Payments Team",
+      "date": "2026-10-18",
+      "status": "Active Specification"
+    },
+    {
+      "source_id": "DOC-NOVA-CAB",
+      "filename": "DOC-NOVA-CAB.md",
+      "title": "Change Advisory Board (CAB) Decision Log: Meeting #88",
+      "author": "Sarah Lin",
+      "date": "2026-10-22",
+      "status": "Binding Decision"
+    },
+    {
+      "source_id": "DOC-NOVA-COMPLIANCE",
+      "filename": "DOC-NOVA-COMPLIANCE.md",
+      "title": "Regulatory Compliance Policy: EU Cross-Border Transactions",
+      "author": "EFSA Compliance",
+      "date": "2026-10-01",
+      "status": "Active Policy"
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "benchmark_name": "NOVA Investigation Evaluation Benchmark v1",
+  "version": "1.0",
+  "brick": "3.3",
+  "description": "Deterministic evaluation suite for autonomous evidence-guided investigations across 8 archetypal operational scenarios.",
+  "evaluator_type": "DETERMINISTIC_NO_LLM",
+  "scenarios": [
+    {
+      "scenario_id": "INV-DIR-01",
+      "archetype": "direct_investigation",
+      "objective": "What is the active Redis version currently running in production following the incident?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-INC-402#c004"
+      ],
+      "contradictory_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003"
+      ],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-OVERVIEW#c001",
+        "DOC-NOVA-COMPLIANCE#c000"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-HOP-01",
+      "archetype": "multi_hop_investigation",
+      "objective": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-OVERVIEW#c003",
+        "DOC-NOVA-PAYMENT#c003",
+        "DOC-NOVA-INC-402#c004",
+        "DOC-NOVA-CAB#c003"
+      ],
+      "contradictory_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003"
+      ],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-COMPLIANCE#c000",
+        "DOC-NOVA-OVERVIEW#c000"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-CONTRA-01",
+      "archetype": "contradiction_reconciliation",
+      "objective": "Does Project Phoenix run Redis v7.2 or Redis v5.4.12 in active production?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003",
+        "DOC-NOVA-INC-402#c004"
+      ],
+      "contradictory_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003"
+      ],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-COMPLIANCE#c001"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-TEMP-01",
+      "archetype": "temporal_invalidation",
+      "objective": "Is the Redis configuration described in Architecture Specification v1.1 still valid?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003",
+        "DOC-NOVA-INC-402#c004"
+      ],
+      "contradictory_evidence_ids": [
+        "DOC-NOVA-ARCH-OLD#c003"
+      ],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-CAB#c001"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-REF-01",
+      "archetype": "reference_resolution",
+      "objective": "What was the final Change Advisory Board disposition on Marcus Vance's emergency change request?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-CAB#c002",
+        "DOC-NOVA-CAB#c003"
+      ],
+      "contradictory_evidence_ids": [],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-OVERVIEW#c002"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-DISTRACT-01",
+      "archetype": "distractor_heavy",
+      "objective": "What are the data encryption and mTLS security requirements for Payment Gateway v2?",
+      "expected_answerable": true,
+      "required_evidence_ids": [
+        "DOC-NOVA-PAYMENT#c001",
+        "DOC-NOVA-PAYMENT#c003",
+        "DOC-NOVA-COMPLIANCE#c003"
+      ],
+      "contradictory_evidence_ids": [],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-OVERVIEW#c000",
+        "DOC-NOVA-OVERVIEW#c001",
+        "DOC-NOVA-ARCH-OLD#c001",
+        "DOC-NOVA-ARCH-OLD#c002"
+      ],
+      "expected_termination": "SUFFICIENT"
+    },
+    {
+      "scenario_id": "INV-UNANS-01",
+      "archetype": "unanswerable_question",
+      "objective": "What is the Kubernetes cluster autoscaler minimum and maximum worker node pool count for Project Phoenix?",
+      "expected_answerable": false,
+      "required_evidence_ids": [],
+      "contradictory_evidence_ids": [],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-OVERVIEW#c000",
+        "DOC-NOVA-ARCH-OLD#c000"
+      ],
+      "expected_termination": "BUDGET_EXHAUSTED"
+    },
+    {
+      "scenario_id": "INV-INSUF-01",
+      "archetype": "insufficient_evidence",
+      "objective": "Has the Chief Information Security Officer (CISO) formally signed off on the Payment Gateway v2 audit exemption?",
+      "expected_answerable": false,
+      "required_evidence_ids": [
+        "DOC-NOVA-COMPLIANCE#c002"
+      ],
+      "contradictory_evidence_ids": [],
+      "distractor_evidence_ids": [
+        "DOC-NOVA-CAB#c001"
+      ],
+      "expected_termination": "BUDGET_EXHAUSTED"
+    }
+  ]
+}

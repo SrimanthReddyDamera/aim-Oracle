@@ -1,0 +1,14 @@
+{
+  "prompt_chars": 1071,
+  "prompt_construct_time_ms": 0.22259999968810007,
+  "wall_clock_seconds": 14.8,
+  "ollama_telemetry": {
+    "load_duration_ms": 300.6217,
+    "prompt_eval_count": 325,
+    "prompt_eval_seconds": 4.359084,
+    "eval_count": 152,
+    "eval_seconds": 9.894432,
+    "total_duration_seconds": 14.5689977
+  },
+  "generated_response": "{ \"is_sufficient\": false, \"sufficiency_rationale\": \"The provided documents do not contain specific information about whether Project Phoenix can safely launch on Friday, October 24 at 09:00 UTC. The CAB decisions and production release plan mention timelines but do not specify the readiness for a particular date.\", \"candidate_queries\": [\n    { \"priority\": 1, \"targeted_query\": \"Project Phoenix safe to launch Friday 09:00 UTC\" ,\n        \"target_entity\": \"Project Phoenix\"\n    },\n    { \"priority\": 2, \"targeted_query\": \"Project Phoenix maintenance window October 24\",\n        \"target_entity\": \"Project Phoenix\"\n    }\n] }\n\n  "
+}

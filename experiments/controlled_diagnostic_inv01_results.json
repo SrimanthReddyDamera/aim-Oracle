@@ -1,0 +1,68 @@
+{
+  "scenario": "INV-01",
+  "objective": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+  "budget": {
+    "max_hops": 3,
+    "max_llm_calls": 3,
+    "max_queries": 6,
+    "max_total_chunks": 15,
+    "max_wall_time_seconds": 30.0
+  },
+  "total_wall_clock_seconds": 34.03,
+  "termination_reason": "BUDGET_EXHAUSTED_TIMEOUT",
+  "controller_verified": false,
+  "step_telemetry": [
+    {
+      "hop": 1,
+      "construct_time_ms": 0.006,
+      "evidence_chunks_count": 4,
+      "prompt_chars": 1669,
+      "input_tokens": 498,
+      "input_eval_seconds": 0.07,
+      "input_tokens_per_sec": 7612.8,
+      "output_tokens": 464,
+      "output_gen_seconds": 33.46,
+      "output_tokens_per_sec": 13.9,
+      "load_duration_ms": 221.51,
+      "total_ollama_seconds": 33.76,
+      "http_wall_clock_seconds": 34.02,
+      "proposed_sufficient": false,
+      "candidate_gaps_count": 3,
+      "inferred_edges_count": 1
+    }
+  ],
+  "package_summary": {
+    "evidence_ids": [
+      "DOC-NOVA-CAB#c002",
+      "DOC-NOVA-OVERVIEW#c003",
+      "DOC-NOVA-PAYMENT#c001",
+      "DOC-NOVA-CAB#c005",
+      "DOC-NOVA-OVERVIEW#c004",
+      "DOC-NOVA-PAYMENT#c002"
+    ],
+    "graph_edges": [
+      {
+        "source_evidence_id": "DOC-NOVA-CAB#c005",
+        "target_evidence_id": "DOC-NOVA-PAYMENT#c001",
+        "relationship_type": "DEPENDS_ON",
+        "basis": "The earliest permissible maintenance window for the Redis v7.2 upgrade is contingent on passing 48 hours of staging soak tests, which are scheduled to occur after Project Phoenix deployment.",
+        "derived_by": "LLM_INFERENCE",
+        "confidence": 0.95
+      }
+    ],
+    "gap_history": [
+      {
+        "gap_id": "G3",
+        "description": "What are the specific dependencies and constraints for the Redis v7.2 upgrade, including any potential delays or changes in schedule?",
+        "query": "Dependencies and constraints for Redis v7.2 upgrade",
+        "resolved": true
+      },
+      {
+        "gap_id": "G3",
+        "description": "What are the specific dependencies and constraints for the Redis v7.2 upgrade, including any potential delays or changes in schedule?",
+        "query": "Dependencies and constraints for Redis v7.2 upgrade",
+        "resolved": true
+      }
+    ]
+  }
+}
