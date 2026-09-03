@@ -2,6 +2,7 @@
 ORACLE Candidate A: SQLite FTS5 Lexical Retriever
 Pure standard library implementation of BM25 full-text search.
 Zero external pip dependencies.
+Implements the generic EvidenceProvider interface (Brick 3.4).
 """
 
 import json
@@ -9,13 +10,14 @@ import re
 import sqlite3
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from backend.db.migrator import run_migrations
 from backend.evidence.models import Evidence
+from backend.retrieval.provider import EvidenceProvider, ProviderCapability, ProviderSearchResult
 
 
-class SQLiteFTS5Retriever:
+class SQLiteFTS5Retriever(EvidenceProvider):
     """
     Candidate A: Pure lexical BM25 search over normalized Evidence chunks.
     Uses SQLite's built-in FTS5 engine with porter stemming.
@@ -23,10 +25,26 @@ class SQLiteFTS5Retriever:
 
     def __init__(self, db_path: str | Path = ":memory:"):
         self.db_path = str(db_path)
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self.conn.execute("PRAGMA journal_mode = WAL;")
         self.conn.execute("PRAGMA synchronous = NORMAL;")
         self._init_schema()
+
+    @property
+    def provider_id(self) -> str:
+        return "sqlite_fts5"
+
+    @property
+    def capabilities(self) -> Set[ProviderCapability]:
+        return {ProviderCapability.LEXICAL_SEARCH, ProviderCapability.LOCAL_CACHE}
+
+    def health_check(self) -> bool:
+        try:
+            cur = self.conn.cursor()
+            cur.execute("SELECT 1;")
+            return cur.fetchone() is not None
+        except Exception:
+            return False
 
     def _init_schema(self):
         # Delegate table & FTS creation to idempotent migration runner
@@ -75,7 +93,12 @@ class SQLiteFTS5Retriever:
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return elapsed_ms
 
-    def search(self, query: str, k: int = 5) -> Tuple[List[Tuple[Evidence, float]], float]:
+    def search(
+        self,
+        query: str,
+        k: int = 5,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[List[Tuple[Evidence, float]], float]:
         """
         Execute BM25 search. Returns (results_list, latency_ms).
         Results format: [(Evidence, score)] ordered by score descending.
@@ -141,6 +164,27 @@ class SQLiteFTS5Retriever:
             results.append((ev, bm25_score))
 
         return results, elapsed_ms
+
+    def search_provider(
+        self,
+        query: str,
+        k: int = 4,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[ProviderSearchResult]:
+        """EvidenceProvider implementation returning normalized search results."""
+        results, _ = self.search(query, k=k)
+        return [
+            ProviderSearchResult(
+                evidence_id=ev.evidence_id,
+                source_type="document",
+                source_id=ev.source_id,
+                content=ev.content,
+                score=score,
+                metadata=ev.metadata,
+                evidence=ev,
+            )
+            for ev, score in results
+        ]
 
     def _sanitize_query(self, query: str) -> str:
         """Sanitize query string to avoid FTS5 syntax errors while preserving keywords."""

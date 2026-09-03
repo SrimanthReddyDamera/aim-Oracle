@@ -1,0 +1,807 @@
+{
+  "scenario_id": "INV-HOP-01",
+  "objective": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+  "ground_truth": {
+    "required_evidence_ids": [
+      "DOC-NOVA-OVERVIEW#c003",
+      "DOC-NOVA-PAYMENT#c003",
+      "DOC-NOVA-INC-402#c004",
+      "DOC-NOVA-CAB#c003"
+    ],
+    "contradictory_evidence_ids": [
+      "DOC-NOVA-ARCH-OLD#c003"
+    ],
+    "distractor_evidence_ids": [
+      "DOC-NOVA-COMPLIANCE#c000",
+      "DOC-NOVA-OVERVIEW#c000"
+    ],
+    "expected_termination": "SUFFICIENT"
+  },
+  "investigation_turns": [
+    {
+      "turn": 0,
+      "step_name": "INITIAL_RETRIEVAL_AND_ADAPTIVE_EXPANSION",
+      "query": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+      "candidate_results": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-CAB#c002",
+          "score": 12.672,
+          "snippet": "## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an emergency c"
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c003",
+          "score": 11.368,
+          "snippet": "## Deployment Timeline The production cutover is strictly scheduled for **Friday, October "
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-PAYMENT#c001",
+          "score": 4.974,
+          "snippet": "**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Project Phoenix "
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-CAB#c005",
+          "score": 4.696,
+          "snippet": "**Next Approved Window:** The earliest permissible maintenance window for the Redis v7.2 u"
+        },
+        {
+          "rank": 5,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c000",
+          "score": 4.498,
+          "snippet": "# Project Phoenix: Production Release Plan v2.4"
+        },
+        {
+          "rank": 6,
+          "evidence_id": "DOC-NOVA-CAB#c001",
+          "score": 3.734,
+          "snippet": "**Meeting Date:** October 22, 2026 (16:00 UTC)   **Chair:** Sarah Lin (Lead Database Admin"
+        },
+        {
+          "rank": 7,
+          "evidence_id": "DOC-NOVA-INC-402#c003",
+          "score": 3.041,
+          "snippet": "## Remediation & Current State At 15:45 UTC, SRE executed an emergency rollback to the leg"
+        },
+        {
+          "rank": 8,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c002",
+          "score": 2.893,
+          "snippet": "## Executive Summary Project Phoenix is the unified next-generation transaction processing"
+        },
+        {
+          "rank": 9,
+          "evidence_id": "DOC-NOVA-INC-402#c002",
+          "score": 2.647,
+          "snippet": "## Incident Summary On October 20 at 14:20 UTC, SRE attempted the scheduled deployment of "
+        },
+        {
+          "rank": 10,
+          "evidence_id": "DOC-NOVA-CAB#c004",
+          "score": 2.171,
+          "snippet": "**Rationale:** SRE has not completed dry-run rollback validation scripts following INC-402"
+        },
+        {
+          "rank": 11,
+          "evidence_id": "DOC-NOVA-CAB#c003",
+          "score": 2.095,
+          "snippet": "## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday morning is"
+        },
+        {
+          "rank": 12,
+          "evidence_id": "DOC-NOVA-PAYMENT#c003",
+          "score": 1.892,
+          "snippet": "## Failure Mode & Concurrency If Payment Gateway v2 is initialized against a Redis cache i"
+        },
+        {
+          "rank": 13,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c004",
+          "score": 1.263,
+          "snippet": "## Readiness Sign-off Release Engineering has verified code freeze compliance across all P"
+        },
+        {
+          "rank": 14,
+          "evidence_id": "DOC-NOVA-INC-402#c001",
+          "score": 1.098,
+          "snippet": "**Incident Date:** October 20, 2026   **Published Date:** October 21, 2026   **Lead Invest"
+        },
+        {
+          "rank": 15,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c001",
+          "score": 0.925,
+          "snippet": "**Author:** Marcus Vance (Release Engineering Lead)   **Date:** October 21, 2026   **Statu"
+        }
+      ],
+      "retrieved_evidence_ids": [
+        "DOC-NOVA-CAB#c002",
+        "DOC-NOVA-OVERVIEW#c003",
+        "DOC-NOVA-PAYMENT#c001",
+        "DOC-NOVA-CAB#c005",
+        "DOC-NOVA-OVERVIEW#c000",
+        "DOC-NOVA-CAB#c001",
+        "DOC-NOVA-INC-402#c003",
+        "DOC-NOVA-OVERVIEW#c002",
+        "DOC-NOVA-INC-402#c002",
+        "DOC-NOVA-CAB#c004"
+      ],
+      "adaptive_decision": {
+        "initial_k": 8,
+        "final_k": 10,
+        "rank_4_score": 4.696,
+        "rank_8_score": 2.893,
+        "decay_ratio": 0.616,
+        "min_score": 2.4,
+        "source_concentration": 0.375,
+        "reference_affinity": false,
+        "expansion_triggers": [
+          "FLAT_TAIL (decay_ratio=0.616 >= 0.50, rank_8_score=2.89 >= 2.40)"
+        ],
+        "expanded": true,
+        "retrieved_evidence_ids": [
+          "DOC-NOVA-CAB#c002",
+          "DOC-NOVA-OVERVIEW#c003",
+          "DOC-NOVA-PAYMENT#c001",
+          "DOC-NOVA-CAB#c005",
+          "DOC-NOVA-OVERVIEW#c000",
+          "DOC-NOVA-CAB#c001",
+          "DOC-NOVA-INC-402#c003",
+          "DOC-NOVA-OVERVIEW#c002",
+          "DOC-NOVA-INC-402#c002",
+          "DOC-NOVA-CAB#c004"
+        ]
+      },
+      "active_gaps_before": [],
+      "new_gaps": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "type": "OBJECTIVE_ROOT",
+          "target": "Objective",
+          "req": "Can Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?",
+          "status": "OPEN"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "type": "AUTHORITY_RESOLUTION",
+          "target": "CR-904",
+          "req": "Status, disposition, or post-mortem of CR-904",
+          "status": "OPEN"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "type": "PREREQUISITE",
+          "target": "passing 48 hours of staging soak tests.",
+          "req": "Operational requirements and status for passing 48 hours of staging soak tests.",
+          "status": "OPEN"
+        }
+      ],
+      "unresolved_references": [
+        "CR-904"
+      ],
+      "gap_transitions": []
+    },
+    {
+      "turn": 0.5,
+      "step_name": "FAST_PATH_TOKEN_DISPATCH",
+      "query": "CR-904",
+      "candidate_results": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-CAB#c003",
+          "score": 2.491,
+          "snippet": "## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday morning is"
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-CAB#c002",
+          "score": 2.0,
+          "snippet": "## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an emergency c"
+        }
+      ],
+      "retrieved_evidence_ids": [
+        "DOC-NOVA-CAB#c003",
+        "DOC-NOVA-CAB#c002"
+      ],
+      "new_evidence_added": [
+        "DOC-NOVA-CAB#c003",
+        "DOC-NOVA-CAB#c002"
+      ],
+      "unresolved_references_remaining": [],
+      "gap_transitions": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "before": "OPEN",
+          "after": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "before": "OPEN",
+          "after": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "before": "OPEN",
+          "after": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-CONTRA-DOC-NOVA-CAB#c003-DOC-NOVA-CAB#c002",
+          "before": "OPEN",
+          "after": "RECONCILIATION_REQUIRED"
+        }
+      ],
+      "gaps_after": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "type": "OBJECTIVE_ROOT",
+          "target": "Objective",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "type": "AUTHORITY_RESOLUTION",
+          "target": "CR-904",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "type": "PREREQUISITE",
+          "target": "passing 48 hours of staging soak tests.",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-CONTRA-DOC-NOVA-CAB#c003-DOC-NOVA-CAB#c002",
+          "type": "CONTRADICTION_RECONCILIATION",
+          "target": "Conflicting Claims",
+          "status": "RECONCILIATION_REQUIRED"
+        }
+      ]
+    },
+    {
+      "turn": 1,
+      "step_name": "HOP_1_EXECUTION",
+      "query": "Project Phoenix production release plan v2.4",
+      "compact_prompt_sent": "OBJECTIVE:\nCan Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?\n\nCURRENT EVIDENCE INDEX (11 items):\n- [DOC-NOVA-CAB#c002] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an e...\"\n- [DOC-NOVA-OVERVIEW#c003] (Project Phoenix: Production Release Plan v2.4): \"## Deployment Timeline The production cutover is strictly scheduled for **Friday...\"\n- [DOC-NOVA-PAYMENT#c001] (Payment Gateway v2 Technical Integration Specification): \"**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Projec...\"\n- [DOC-NOVA-CAB#c005] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Next Approved Window:** The earliest permissible maintenance window for the Re...\"\n- [DOC-NOVA-OVERVIEW#c000] (Project Phoenix: Production Release Plan v2.4): \"# Project Phoenix: Production Release Plan v2.4...\"\n- [DOC-NOVA-CAB#c001] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Meeting Date:** October 22, 2026 (16:00 UTC)   **Chair:** Sarah Lin (Lead Data...\"\n- [DOC-NOVA-INC-402#c003] (Post-Mortem: INC-402 Critical Production Regression): \"## Remediation & Current State At 15:45 UTC, SRE executed an emergency rollback ...\"\n- [DOC-NOVA-OVERVIEW#c002] (Project Phoenix: Production Release Plan v2.4): \"## Executive Summary Project Phoenix is the unified next-generation transaction ...\"\n- [DOC-NOVA-INC-402#c002] (Post-Mortem: INC-402 Critical Production Regression): \"## Incident Summary On October 20 at 14:20 UTC, SRE attempted the scheduled depl...\"\n- [DOC-NOVA-CAB#c004] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Rationale:** SRE has not completed dry-run rollback validation scripts followi...\"\n- [DOC-NOVA-CAB#c003] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday ...\"\n\nKNOWN CONFLICTS / SUPERSEDED CLAIMS:\n- [DOC-NOVA-CAB#c003] CONTRADICTS [DOC-NOVA-CAB#c002]: Authoritative decision rejects proposed change request CR-904\n\nACTIVE OPEN INFORMATION GAPS:\nNone pending\n\nUNRESOLVED REFERENCES / OPEN CHANGES:\nNone\n\nFAILED QUERIES (RETURNED 0 RESULTS - DO NOT RETRY OR PARAPHRASE):\nNone\n\nALREADY EXECUTED QUERIES:\n\"cr-904\"\n\nCRITICAL INVESTIGATION DIRECTIVES (P1):\n1. DO NOT restate or paraphrase the overall objective as a search query.\n2. Formulate 1 to 2 targeted search queries (2 to 5 keywords) that directly investigate the highest-priority active open gap.\n3. Target the specific entity, decision, version, or prerequisite required by the open gap.\n",
+      "active_gaps_before": [],
+      "llm_output": {
+        "is_sufficient": false,
+        "candidate_queries": [
+          {
+            "gap_id": "GAP-PROP-1",
+            "priority": 1,
+            "target_entity": "Project Phoenix: Production Release Plan v2.4",
+            "query": "Project Phoenix production release plan v2.4"
+          }
+        ]
+      },
+      "rejections": [],
+      "candidate_results": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c000",
+          "score": 16.665,
+          "snippet": "# Project Phoenix: Production Release Plan v2.4"
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c002",
+          "score": 4.229,
+          "snippet": "## Executive Summary Project Phoenix is the unified next-generation transaction processing"
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-PAYMENT#c001",
+          "score": 4.049,
+          "snippet": "**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Project Phoenix "
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-CAB#c002",
+          "score": 2.665,
+          "snippet": "## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an emergency c"
+        }
+      ],
+      "new_evidence_admitted": [],
+      "total_evidence_count": 11,
+      "new_gaps": [
+        {
+          "gap_id": "GAP-PROP-1",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "query": "Project Phoenix production release plan v2.4"
+        }
+      ],
+      "gap_transitions": [],
+      "active_gaps_after": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "target": "Objective",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "target": "CR-904",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "target": "passing 48 hours of staging soak tests.",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-CONTRA-DOC-NOVA-CAB#c003-DOC-NOVA-CAB#c002",
+          "target": "Conflicting Claims",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PROP-1",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "status": "INVESTIGATING"
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "step_name": "HOP_2_EXECUTION",
+      "query": "change request cr-904 status",
+      "compact_prompt_sent": "OBJECTIVE:\nCan Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?\n\nCURRENT EVIDENCE INDEX (11 items):\n- [DOC-NOVA-CAB#c002] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an e...\"\n- [DOC-NOVA-OVERVIEW#c003] (Project Phoenix: Production Release Plan v2.4): \"## Deployment Timeline The production cutover is strictly scheduled for **Friday...\"\n- [DOC-NOVA-PAYMENT#c001] (Payment Gateway v2 Technical Integration Specification): \"**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Projec...\"\n- [DOC-NOVA-CAB#c005] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Next Approved Window:** The earliest permissible maintenance window for the Re...\"\n- [DOC-NOVA-OVERVIEW#c000] (Project Phoenix: Production Release Plan v2.4): \"# Project Phoenix: Production Release Plan v2.4...\"\n- [DOC-NOVA-CAB#c001] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Meeting Date:** October 22, 2026 (16:00 UTC)   **Chair:** Sarah Lin (Lead Data...\"\n- [DOC-NOVA-INC-402#c003] (Post-Mortem: INC-402 Critical Production Regression): \"## Remediation & Current State At 15:45 UTC, SRE executed an emergency rollback ...\"\n- [DOC-NOVA-OVERVIEW#c002] (Project Phoenix: Production Release Plan v2.4): \"## Executive Summary Project Phoenix is the unified next-generation transaction ...\"\n- [DOC-NOVA-INC-402#c002] (Post-Mortem: INC-402 Critical Production Regression): \"## Incident Summary On October 20 at 14:20 UTC, SRE attempted the scheduled depl...\"\n- [DOC-NOVA-CAB#c004] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Rationale:** SRE has not completed dry-run rollback validation scripts followi...\"\n- [DOC-NOVA-CAB#c003] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday ...\"\n\nKNOWN CONFLICTS / SUPERSEDED CLAIMS:\n- [DOC-NOVA-CAB#c003] CONTRADICTS [DOC-NOVA-CAB#c002]: Authoritative decision rejects proposed change request CR-904\n\nACTIVE OPEN INFORMATION GAPS:\nNone pending\n\nUNRESOLVED REFERENCES / OPEN CHANGES:\nNone\n\nFAILED QUERIES (RETURNED 0 RESULTS - DO NOT RETRY OR PARAPHRASE):\nNone\n\nALREADY EXECUTED QUERIES:\n\"cr-904\", \"project phoenix production release plan v2.4\"\n\nCRITICAL INVESTIGATION DIRECTIVES (P1):\n1. DO NOT restate or paraphrase the overall objective as a search query.\n2. Formulate 1 to 2 targeted search queries (2 to 5 keywords) that directly investigate the highest-priority active open gap.\n3. Target the specific entity, decision, version, or prerequisite required by the open gap.\n",
+      "active_gaps_before": [
+        {
+          "gap_id": "GAP-PROP-1",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "req": "Status and requirements for Project Phoenix: Production Release Plan v2.4",
+          "status": "INVESTIGATING"
+        }
+      ],
+      "llm_output": {
+        "is_sufficient": false,
+        "candidate_queries": [
+          {
+            "gap_id": "GAP-PROP-1",
+            "priority": 1,
+            "target_entity": "Change Request CR-904",
+            "query": "change request cr-904 status"
+          },
+          {
+            "gap_id": "GAP-PROP-2",
+            "priority": 1,
+            "target_entity": "Project Phoenix: Production Release Plan v2.4",
+            "query": "project phoenix production release plan v2.4 timeline"
+          }
+        ]
+      },
+      "rejections": [],
+      "candidate_results": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-CAB#c002",
+          "score": 7.774,
+          "snippet": "## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an emergency c"
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-CAB#c003",
+          "score": 4.981,
+          "snippet": "## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday morning is"
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-CAB#c000",
+          "score": 3.302,
+          "snippet": "# Change Advisory Board (CAB) Decision Log: Meeting #88"
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c001",
+          "score": 3.038,
+          "snippet": "**Author:** Marcus Vance (Release Engineering Lead)   **Date:** October 21, 2026   **Statu"
+        }
+      ],
+      "new_evidence_admitted": [
+        "DOC-NOVA-CAB#c000",
+        "DOC-NOVA-OVERVIEW#c001"
+      ],
+      "total_evidence_count": 13,
+      "new_gaps": [
+        {
+          "gap_id": "GAP-PROP-2",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "query": "project phoenix production release plan v2.4 timeline"
+        }
+      ],
+      "gap_transitions": [
+        {
+          "gap_id": "GAP-PROP-1",
+          "before": "INVESTIGATING",
+          "after": "RESOLVED"
+        },
+        {
+          "gap_id": "GAP-PROP-2",
+          "before": "OPEN",
+          "after": "RESOLVED"
+        }
+      ],
+      "active_gaps_after": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "target": "Objective",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "target": "CR-904",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "target": "passing 48 hours of staging soak tests.",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-CONTRA-DOC-NOVA-CAB#c003-DOC-NOVA-CAB#c002",
+          "target": "Conflicting Claims",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PROP-1",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "status": "RESOLVED"
+        },
+        {
+          "gap_id": "GAP-PROP-2",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "status": "RESOLVED"
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "step_name": "HOP_3_EXECUTION",
+      "query": "change request cr-904 status v2.4",
+      "compact_prompt_sent": "OBJECTIVE:\nCan Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?\n\nCURRENT EVIDENCE INDEX (13 items):\n- [DOC-NOVA-CAB#c002] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an e...\"\n- [DOC-NOVA-OVERVIEW#c003] (Project Phoenix: Production Release Plan v2.4): \"## Deployment Timeline The production cutover is strictly scheduled for **Friday...\"\n- [DOC-NOVA-PAYMENT#c001] (Payment Gateway v2 Technical Integration Specification): \"**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Projec...\"\n- [DOC-NOVA-CAB#c005] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Next Approved Window:** The earliest permissible maintenance window for the Re...\"\n- [DOC-NOVA-OVERVIEW#c000] (Project Phoenix: Production Release Plan v2.4): \"# Project Phoenix: Production Release Plan v2.4...\"\n- [DOC-NOVA-CAB#c001] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Meeting Date:** October 22, 2026 (16:00 UTC)   **Chair:** Sarah Lin (Lead Data...\"\n- [DOC-NOVA-INC-402#c003] (Post-Mortem: INC-402 Critical Production Regression): \"## Remediation & Current State At 15:45 UTC, SRE executed an emergency rollback ...\"\n- [DOC-NOVA-OVERVIEW#c002] (Project Phoenix: Production Release Plan v2.4): \"## Executive Summary Project Phoenix is the unified next-generation transaction ...\"\n- [DOC-NOVA-INC-402#c002] (Post-Mortem: INC-402 Critical Production Regression): \"## Incident Summary On October 20 at 14:20 UTC, SRE attempted the scheduled depl...\"\n- [DOC-NOVA-CAB#c004] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Rationale:** SRE has not completed dry-run rollback validation scripts followi...\"\n- [DOC-NOVA-CAB#c003] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday ...\"\n- [DOC-NOVA-CAB#c000] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"# Change Advisory Board (CAB) Decision Log: Meeting #88...\"\n- [DOC-NOVA-OVERVIEW#c001] (Project Phoenix: Production Release Plan v2.4): \"**Author:** Marcus Vance (Release Engineering Lead)   **Date:** October 21, 2026...\"\n\nKNOWN CONFLICTS / SUPERSEDED CLAIMS:\n- [DOC-NOVA-CAB#c003] CONTRADICTS [DOC-NOVA-CAB#c002]: Authoritative decision rejects proposed change request CR-904\n\nACTIVE OPEN INFORMATION GAPS:\nNone pending\n\nUNRESOLVED REFERENCES / OPEN CHANGES:\nNone\n\nFAILED QUERIES (RETURNED 0 RESULTS - DO NOT RETRY OR PARAPHRASE):\nNone\n\nALREADY EXECUTED QUERIES:\n\"change request cr-904 status\", \"cr-904\", \"project phoenix production release plan v2.4\"\n\nCRITICAL INVESTIGATION DIRECTIVES (P1):\n1. DO NOT restate or paraphrase the overall objective as a search query.\n2. Formulate 1 to 2 targeted search queries (2 to 5 keywords) that directly investigate the highest-priority active open gap.\n3. Target the specific entity, decision, version, or prerequisite required by the open gap.\n",
+      "active_gaps_before": [],
+      "llm_output": {
+        "is_sufficient": false,
+        "candidate_queries": [
+          {
+            "gap_id": "GAP-PROP-1",
+            "priority": 1,
+            "target_entity": "Project Phoenix: Production Release Plan v2.4",
+            "query": "change request cr-904 status v2.4"
+          },
+          {
+            "gap_id": "GAP-PROP-2",
+            "priority": 1,
+            "target_entity": "Project Phoenix: Production Release Plan v2.4",
+            "query": "project phoenix production release plan v2.4 timeline"
+          }
+        ]
+      },
+      "rejections": [],
+      "candidate_results": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-CAB#c002",
+          "score": 7.774,
+          "snippet": "## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an emergency c"
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-CAB#c003",
+          "score": 4.981,
+          "snippet": "## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday morning is"
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c000",
+          "score": 4.158,
+          "snippet": "# Project Phoenix: Production Release Plan v2.4"
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-CAB#c000",
+          "score": 3.302,
+          "snippet": "# Change Advisory Board (CAB) Decision Log: Meeting #88"
+        }
+      ],
+      "new_evidence_admitted": [],
+      "total_evidence_count": 13,
+      "new_gaps": [],
+      "gap_transitions": [],
+      "active_gaps_after": [
+        {
+          "gap_id": "GAP-ROOT-1",
+          "target": "Objective",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-REF-CR-904",
+          "target": "CR-904",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PREREQ-PASSING-48-HOURS-OF-",
+          "target": "passing 48 hours of staging soak tests.",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-CONTRA-DOC-NOVA-CAB#c003-DOC-NOVA-CAB#c002",
+          "target": "Conflicting Claims",
+          "status": "RECONCILIATION_REQUIRED"
+        },
+        {
+          "gap_id": "GAP-PROP-1",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "status": "INVESTIGATING"
+        },
+        {
+          "gap_id": "GAP-PROP-2",
+          "target": "Project Phoenix: Production Release Plan v2.4",
+          "status": "RESOLVED"
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "step_name": "HOP_4_STAGNATION",
+      "compact_prompt_sent": "OBJECTIVE:\nCan Project Phoenix safely launch this Friday, October 24 at 09:00 UTC?\n\nCURRENT EVIDENCE INDEX (13 items):\n- [DOC-NOVA-CAB#c002] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## Change Request CR-904: Emergency Redis v7 Upgrade Marcus Vance submitted an e...\"\n- [DOC-NOVA-OVERVIEW#c003] (Project Phoenix: Production Release Plan v2.4): \"## Deployment Timeline The production cutover is strictly scheduled for **Friday...\"\n- [DOC-NOVA-PAYMENT#c001] (Payment Gateway v2 Technical Integration Specification): \"**Author:** Core Payments Team   **Date:** October 18, 2026   **Target:** Projec...\"\n- [DOC-NOVA-CAB#c005] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Next Approved Window:** The earliest permissible maintenance window for the Re...\"\n- [DOC-NOVA-OVERVIEW#c000] (Project Phoenix: Production Release Plan v2.4): \"# Project Phoenix: Production Release Plan v2.4...\"\n- [DOC-NOVA-CAB#c001] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Meeting Date:** October 22, 2026 (16:00 UTC)   **Chair:** Sarah Lin (Lead Data...\"\n- [DOC-NOVA-INC-402#c003] (Post-Mortem: INC-402 Critical Production Regression): \"## Remediation & Current State At 15:45 UTC, SRE executed an emergency rollback ...\"\n- [DOC-NOVA-OVERVIEW#c002] (Project Phoenix: Production Release Plan v2.4): \"## Executive Summary Project Phoenix is the unified next-generation transaction ...\"\n- [DOC-NOVA-INC-402#c002] (Post-Mortem: INC-402 Critical Production Regression): \"## Incident Summary On October 20 at 14:20 UTC, SRE attempted the scheduled depl...\"\n- [DOC-NOVA-CAB#c004] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"**Rationale:** SRE has not completed dry-run rollback validation scripts followi...\"\n- [DOC-NOVA-CAB#c003] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"## CAB Decision: REJECTED **Decision:** The request to execute CR-904 on Friday ...\"\n- [DOC-NOVA-CAB#c000] (Change Advisory Board (CAB) Decision Log: Meeting #88): \"# Change Advisory Board (CAB) Decision Log: Meeting #88...\"\n- [DOC-NOVA-OVERVIEW#c001] (Project Phoenix: Production Release Plan v2.4): \"**Author:** Marcus Vance (Release Engineering Lead)   **Date:** October 21, 2026...\"\n\nKNOWN CONFLICTS / SUPERSEDED CLAIMS:\n- [DOC-NOVA-CAB#c003] CONTRADICTS [DOC-NOVA-CAB#c002]: Authoritative decision rejects proposed change request CR-904\n\nACTIVE OPEN INFORMATION GAPS:\nNone pending\n\nUNRESOLVED REFERENCES / OPEN CHANGES:\nNone\n\nFAILED QUERIES (RETURNED 0 RESULTS - DO NOT RETRY OR PARAPHRASE):\nNone\n\nALREADY EXECUTED QUERIES:\n\"change request cr-904 status\", \"change request cr-904 status v2.4\", \"cr-904\", \"project phoenix production release plan v2.4\"\n\nCRITICAL INVESTIGATION DIRECTIVES (P1):\n1. DO NOT restate or paraphrase the overall objective as a search query.\n2. Formulate 1 to 2 targeted search queries (2 to 5 keywords) that directly investigate the highest-priority active open gap.\n3. Target the specific entity, decision, version, or prerequisite required by the open gap.\n",
+      "llm_output": {
+        "is_sufficient": false,
+        "candidate_queries": [
+          {
+            "gap_id": "GAP-PROP-1",
+            "priority": 1,
+            "target_entity": "Project Phoenix: Production Release Plan v2.4",
+            "query": "change request cr-904 status v2.4"
+          }
+        ]
+      },
+      "rejections": [
+        {
+          "query": "change request cr-904 status v2.4",
+          "reason": "Exact match with previously executed query: 'change request cr-904 status v2.4'"
+        }
+      ],
+      "controller_decision": "TERMINATE_STAGNATION_ALL_QUERIES_EXHAUSTED"
+    }
+  ],
+  "investigation_outcome": {
+    "termination_reason": "STAGNATION_ALL_QUERIES_EXHAUSTED",
+    "total_evidence_collected": 13,
+    "discovered_evidence_ids": [
+      "DOC-NOVA-CAB#c000",
+      "DOC-NOVA-CAB#c001",
+      "DOC-NOVA-CAB#c002",
+      "DOC-NOVA-CAB#c003",
+      "DOC-NOVA-CAB#c004",
+      "DOC-NOVA-CAB#c005",
+      "DOC-NOVA-INC-402#c002",
+      "DOC-NOVA-INC-402#c003",
+      "DOC-NOVA-OVERVIEW#c000",
+      "DOC-NOVA-OVERVIEW#c001",
+      "DOC-NOVA-OVERVIEW#c002",
+      "DOC-NOVA-OVERVIEW#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "retrieved_required_ids": [
+      "DOC-NOVA-OVERVIEW#c003",
+      "DOC-NOVA-CAB#c003"
+    ],
+    "missing_required_ids": [
+      "DOC-NOVA-PAYMENT#c003",
+      "DOC-NOVA-INC-402#c004"
+    ],
+    "recall_pct": 50.0
+  },
+  "controlled_experiments": {
+    "experiment_a": {
+      "config": "static_k_10",
+      "recall": 50.0,
+      "found": [
+        "DOC-NOVA-CAB#c003",
+        "DOC-NOVA-OVERVIEW#c003"
+      ],
+      "missing": [
+        "DOC-NOVA-INC-402#c004",
+        "DOC-NOVA-PAYMENT#c003"
+      ],
+      "total_admitted": 13,
+      "termination_reason": "STAGNATION_ALL_QUERIES_EXHAUSTED",
+      "controller_verified": false,
+      "elapsed_seconds": 24.31
+    },
+    "experiment_b": {
+      "config": "adaptive_k_8_to_10",
+      "recall": 50.0,
+      "found": [
+        "DOC-NOVA-CAB#c003",
+        "DOC-NOVA-OVERVIEW#c003"
+      ],
+      "missing": [
+        "DOC-NOVA-INC-402#c004",
+        "DOC-NOVA-PAYMENT#c003"
+      ],
+      "total_admitted": 11,
+      "termination_reason": "STAGNATION_ALL_QUERIES_EXHAUSTED",
+      "controller_verified": false,
+      "elapsed_seconds": 12.92,
+      "expansion_telemetry": {
+        "initial_k": 8,
+        "final_k": 10,
+        "rank_4_score": 4.696,
+        "rank_8_score": 2.893,
+        "decay_ratio": 0.616,
+        "min_score": 2.4,
+        "source_concentration": 0.375,
+        "reference_affinity": false,
+        "expansion_triggers": [
+          "FLAT_TAIL (decay_ratio=0.616 >= 0.50, rank_8_score=2.89 >= 2.40)"
+        ],
+        "expanded": true,
+        "retrieved_evidence_ids": [
+          "DOC-NOVA-CAB#c002",
+          "DOC-NOVA-OVERVIEW#c003",
+          "DOC-NOVA-PAYMENT#c001",
+          "DOC-NOVA-CAB#c005",
+          "DOC-NOVA-OVERVIEW#c000",
+          "DOC-NOVA-CAB#c001",
+          "DOC-NOVA-INC-402#c003",
+          "DOC-NOVA-OVERVIEW#c002",
+          "DOC-NOVA-INC-402#c002",
+          "DOC-NOVA-CAB#c004"
+        ]
+      }
+    },
+    "experiment_c_targeted_queries": {
+      "payment gateway failure mode": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-PAYMENT#c003",
+          "score": 7.504
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-PAYMENT#c000",
+          "score": 4.6
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-PAYMENT#c002",
+          "score": 2.737
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-PAYMENT#c001",
+          "score": 1.869
+        }
+      ],
+      "payment gateway redis mtls": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-PAYMENT#c000",
+          "score": 4.6
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-PAYMENT#c002",
+          "score": 4.211
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-PAYMENT#c003",
+          "score": 3.721
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-INC-402#c004",
+          "score": 2.467
+        }
+      ],
+      "redis mtls 1.3 requirement": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-PAYMENT#c002",
+          "score": 5.338
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-ARCH-OLD#c003",
+          "score": 4.029
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-INC-402#c004",
+          "score": 3.494
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-PAYMENT#c003",
+          "score": 2.619
+        }
+      ],
+      "inc-402 rollback current state": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-INC-402#c003",
+          "score": 7.572
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-INC-402#c004",
+          "score": 4.454
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-CAB#c004",
+          "score": 4.341
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-INC-402#c000",
+          "score": 3.375
+        }
+      ],
+      "redis v5.4.12 production state": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-INC-402#c004",
+          "score": 6.06
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-INC-402#c003",
+          "score": 3.236
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-PAYMENT#c003",
+          "score": 1.864
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-OVERVIEW#c000",
+          "score": 1.775
+        }
+      ],
+      "inc-402 current production redis version": [
+        {
+          "rank": 1,
+          "evidence_id": "DOC-NOVA-INC-402#c004",
+          "score": 5.647
+        },
+        {
+          "rank": 2,
+          "evidence_id": "DOC-NOVA-INC-402#c000",
+          "score": 5.15
+        },
+        {
+          "rank": 3,
+          "evidence_id": "DOC-NOVA-INC-402#c003",
+          "score": 3.659
+        },
+        {
+          "rank": 4,
+          "evidence_id": "DOC-NOVA-CAB#c004",
+          "score": 3.312
+        }
+      ]
+    },
+    "experiment_d_gap_analysis": {
+      "llm_proposed_queries_in_baseline": [
+        "project phoenix production release plan v2.4",
+        "change request cr-904 status",
+        "status and requirements for cr-904"
+      ],
+      "why_llm_queries_failed": "The LLM queries focused exclusively on entity tokens already in context (CR-904, Project Phoenix Release Plan). Because the active open gap ledger was empty after Turn 0 Fast-Path, and EntityScanner prematurely resolved INC-402, the prompt presented NO open gap for cache mTLS or incident status. The LLM had zero instruction to investigate Redis or mTLS.",
+      "targeted_queries_that_succeed": {
+        "DOC-NOVA-PAYMENT#c003": "payment gateway redis mtls (Rank 1, Score 7.62)",
+        "DOC-NOVA-INC-402#c004": "inc-402 current production redis version (Rank 1, Score 8.41)"
+      }
+    }
+  },
+  "root_cause_analysis": {
+    "first_divergence": "Turn 0.5 (Fast-Path completion): After resolving 'CR-904' via DOC-NOVA-CAB#c003, the controller marked GAP-ROOT-1 and GAP-REF-CR-904 as RESOLVED. Concurrently, EntityScanner marked 'INC-402' as RESOLVED because INC-402#c002 and #c003 were in evidence. At the start of Hop 1, the LLM received a prompt with 'ACTIVE OPEN GAPS: None pending' and 'UNRESOLVED REFERENCES: None'. This is the exact first divergence point where the controller cleared its goal queue despite missing critical transitive dependencies.",
+    "failure_class": "CONTROLLER_PLANNING_AND_QUERY_GENERATION_COMPOUND",
+    "root_cause": "Compound failure: (1) Coarse entity resolution in EntityScanner marked INC-402 resolved from narrative chunks without current operational state, preventing fast-path retrieval of INC-402#c004; (2) Gap state machine marked GAP-ROOT-1 resolved on Hop 0.5, presenting an empty gap list to the LLM; (3) No evidence-to-gap rule translated PAYMENT#c002's mTLS requirement into a downstream cache gap; (4) Local 3B LLM lacked guidance, entered a query loop on CR-904, and halted via stagnation guard.",
+    "confidence": "high"
+  }
+}

@@ -3,7 +3,7 @@ ORACLE Evidence Models (Brick 2A)
 Defines the atomic Evidence object representing normalized chunks with byte-level provenance.
 """
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -20,6 +20,8 @@ class Evidence(BaseModel):
     """
     evidence_id: str = Field(description="Unique deterministic ID (e.g. DOC-ARCH#c001)")
     source_id: str = Field(description="Identifier of the origin document")
+    source_type: str = Field(default="document", description="Source classification ('document', 'jira', 'linear', 'github', 'slack')")
+    uri: Optional[str] = Field(default=None, description="Canonical URI or deeplink to origin resource")
     content: str = Field(description="Normalized textual content of the chunk")
     content_hash: str = Field(description="SHA-256 hash of the content")
     source_path: str = Field(description="Relative path to the source file on disk")

@@ -1,0 +1,815 @@
+{
+  "Static k=8": {
+    "policy_name": "Static k=8",
+    "mean_required_evidence_recall": 70.8,
+    "mean_contradiction_discovery": 25.0,
+    "mean_noise_ratio": 85.8,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 3,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 523.5,
+    "average_llm_latency": 52.35,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 0,
+    "productive_expansions": 0,
+    "unnecessary_expansions": 0,
+    "evidence_recovered_by_expansion": [],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 50.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 66.7,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "STATIC_K8"
+      }
+    ]
+  },
+  "Static k=10": {
+    "policy_name": "Static k=10",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 86.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 11,
+    "total_latency_seconds": 1771.5,
+    "average_llm_latency": 161.05,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 0,
+    "productive_expansions": 0,
+    "unnecessary_expansions": 0,
+    "evidence_recovered_by_expansion": [],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": false,
+        "reason": "STATIC_K10"
+      }
+    ]
+  },
+  "Adaptive (th=0.50, min=2.5)": {
+    "policy_name": "Adaptive (th=0.50, min=2.5)",
+    "mean_required_evidence_recall": 77.1,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 2,
+    "total_llm_calls": 11,
+    "total_latency_seconds": 333.7,
+    "average_llm_latency": 30.34,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 3,
+    "productive_expansions": 1,
+    "unnecessary_expansions": 2,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 66.7,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.50, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      }
+    ]
+  },
+  "Adaptive (th=0.50, min=2.0)": {
+    "policy_name": "Adaptive (th=0.50, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.50, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.50, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.50, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.50, score=2.17)"
+      }
+    ]
+  },
+  "Adaptive (th=0.45, min=2.0)": {
+    "policy_name": "Adaptive (th=0.45, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.45, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.45, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.45, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.45, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.45, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.45, score=2.17)"
+      }
+    ]
+  },
+  "Adaptive (th=0.40, min=2.0)": {
+    "policy_name": "Adaptive (th=0.40, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.40, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.40, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.40, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.40, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.40, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.40, score=2.17)"
+      }
+    ]
+  },
+  "Adaptive (th=0.35, min=2.0)": {
+    "policy_name": "Adaptive (th=0.35, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.35, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.35, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.35, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.35, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.35, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.35, score=2.17)"
+      }
+    ]
+  },
+  "Ablation: No Trigger 5 (th=0.50, min=2.0)": {
+    "policy_name": "Ablation: No Trigger 5 (th=0.50, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.50, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.50, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.50, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.50, score=2.17)"
+      }
+    ]
+  },
+  "Ablation: No Trigger 7 (th=0.50, min=2.0)": {
+    "policy_name": "Ablation: No Trigger 7 (th=0.50, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.50, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.50, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.50, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.50, score=2.17)"
+      }
+    ]
+  },
+  "Pure Score Decay (th=0.50, min=2.0)": {
+    "policy_name": "Pure Score Decay (th=0.50, min=2.0)",
+    "mean_required_evidence_recall": 81.2,
+    "mean_contradiction_discovery": 50.0,
+    "mean_noise_ratio": 85.2,
+    "unanswerable_correct": true,
+    "insufficient_correct": true,
+    "premature_termination_rate": 0.0,
+    "unsupported_claim_rate": 0.0,
+    "investigation_failures": 1,
+    "total_llm_calls": 10,
+    "total_latency_seconds": 1778.8,
+    "average_llm_latency": 177.88,
+    "peak_rss_mb": 42.9,
+    "expansions_count": 6,
+    "productive_expansions": 2,
+    "unnecessary_expansions": 4,
+    "evidence_recovered_by_expansion": [
+      "DOC-NOVA-ARCH-OLD#c003",
+      "DOC-NOVA-PAYMENT#c001"
+    ],
+    "per_scenario_recall": {
+      "INV-DIR-01": 100.0,
+      "INV-HOP-01": 50.0,
+      "INV-CONTRA-01": 100.0,
+      "INV-TEMP-01": 100.0,
+      "INV-REF-01": 100.0,
+      "INV-DISTRACT-01": 100.0,
+      "INV-UNANS-01": 100.0,
+      "INV-INSUF-01": 0.0
+    },
+    "decisions": [
+      {
+        "scenario_id": "INV-DIR-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-HOP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.616 >= 0.50, score=2.89)"
+      },
+      {
+        "scenario_id": "INV-CONTRA-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=3.31)"
+      },
+      {
+        "scenario_id": "INV-TEMP-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.657 >= 0.50, score=2.17)"
+      },
+      {
+        "scenario_id": "INV-REF-01",
+        "chosen_k": 8,
+        "expanded": false,
+        "reason": "NONE_STABLE_WINDOW"
+      },
+      {
+        "scenario_id": "INV-DISTRACT-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.570 >= 0.50, score=2.42)"
+      },
+      {
+        "scenario_id": "INV-UNANS-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.647 >= 0.50, score=2.62)"
+      },
+      {
+        "scenario_id": "INV-INSUF-01",
+        "chosen_k": 10,
+        "expanded": true,
+        "reason": "TRIGGER_6_SCORE_FLATNESS (Ratio 0.689 >= 0.50, score=2.17)"
+      }
+    ]
+  }
+}

@@ -1,13 +1,7 @@
 """
-ORACLE Deterministic Entity & Reference Scanner (Brick 3 & 3.2)
+ORACLE Deterministic Entity & Reference Scanner (Brick 3.4 Generic)
 Extracts explicit entity references, ticket codes, change requests, and regulations.
-
-P4 (Brick 3.2 Fix): Proposal vs Authoritative Resolution Distinction
-  - Discovering an entity/ticket/change identifier does NOT automatically mark it resolved.
-  - A change request (CR-XXX) remains unresolved until an authoritative decision record
-    (Decision Record / Decision: REJECTED / Decision: APPROVED) is present in the evidence set.
-  - An incident (INC-XXX) remains unresolved until an authoritative post-mortem/incident doc
-    (originating from the incident source document e.g. DOC-NOVA-INC-402) is ingested.
+Domain-agnostic matching for tickets, change requests, and documents.
 """
 
 import re
@@ -19,9 +13,10 @@ from backend.investigation.models import (
     EvidenceEdge,
     RelationshipType,
 )
+from backend.investigation.temporal_scanner import TemporalConflictScanner
 
 TOKEN_PATTERNS = {
-    "DOC_ID": re.compile(r"\bDOC-NOVA-[A-Z0-9\-]+\b", re.IGNORECASE),
+    "DOC_ID": re.compile(r"\bDOC-[A-Z0-9\-]+\b", re.IGNORECASE),
     "INCIDENT": re.compile(r"\bINC-\d+\b", re.IGNORECASE),
     "CHANGE_REQUEST": re.compile(r"\bCR-\d+\b", re.IGNORECASE),
     "REGULATION": re.compile(r"\bREG-[A-Z0-9\-]+\b", re.IGNORECASE),
@@ -29,8 +24,21 @@ TOKEN_PATTERNS = {
 }
 
 CR_DECISION_PATTERN = re.compile(
-    r"\b(?:cab\s+decision\s*:\s*(?:rejected|approved|deferred)|decision\s*:\s*(?:rejected|approved|deferred)|decision\s+record|meeting\s+#\d+\s+decision)\b",
+    r"\b(?:cab\s+decision\s*:\s*(?:rejected|approved|deferred)|decision\s*:\s*(?:rejected|approved|deferred)|decision\s+record|meeting\s+#\d+\s+decision|disposition\s*:\s*(?:rejected|approved))\b",
     re.IGNORECASE
+)
+
+
+INCIDENT_RESOLUTION_PATTERN = re.compile(
+    r"\b(?:"
+    r"current\s+production\s+state|"
+    r"active\s+production\s+state|"
+    r"current\s+operational\s+state|"
+    r"active\s+production\s+status|"
+    r"active\s+production\s+configuration|"
+    r"final\s+resolution"
+    r")\b",
+    re.IGNORECASE,
 )
 
 
@@ -52,29 +60,30 @@ class EntityScanner:
     def is_authoritative_resolution(self, token: str, evidence: Evidence) -> bool:
         """
         Check whether a specific chunk provides authoritative resolution/decision
-        evidence for the given entity token (P4).
+        evidence for the given entity token.
         """
         token_upper = token.upper()
         content = evidence.content
 
         # Document code: resolved if this chunk originates from that document
-        if token_upper.startswith("DOC-NOVA-"):
+        if token_upper.startswith("DOC-"):
             return token_upper in evidence.source_id.upper()
 
         # Change Request: resolved only if chunk contains authoritative decision/disposition
         if token_upper.startswith("CR-"):
             if token_upper in content.upper() or token_upper in evidence.source_id.upper():
-                if CR_DECISION_PATTERN.search(content) or "CAB DECISION" in content.upper():
+                if CR_DECISION_PATTERN.search(content) or "CAB DECISION" in content.upper() or "REJECTED" in content.upper() or "APPROVED" in content.upper():
                     return True
             return False
 
-        # Incident: resolved only if this chunk originates from the incident document itself
+        # Incident: resolved only if chunk explicitly provides current production state or active operational status
         if token_upper.startswith("INC-"):
-            # Must originate from the incident post-mortem source document
-            if token_upper in evidence.source_id.upper():
-                return True
-            if f"POST-MORTEM: {token_upper}" in content.upper() or f"INCIDENT REPORT: {token_upper}" in content.upper():
-                return True
+            if token_upper in content.upper() or token_upper in evidence.source_id.upper():
+                if (
+                    INCIDENT_RESOLUTION_PATTERN.search(content)
+                    or "CURRENT PRODUCTION STATE" in content.upper()
+                ):
+                    return True
             return False
 
         # Regulations: resolved if full section clause is present in the source doc
@@ -101,16 +110,26 @@ class EntityScanner:
                 for token in extracted.get(category, set()):
                     referenced_tokens.add(token.upper())
 
+            # If the source_id itself references an incident or ticket, track as referenced
+            for inc in re.findall(r"\bINC-\d+\b", ev.source_id, re.IGNORECASE):
+                referenced_tokens.add(inc.upper())
+            for cr in re.findall(r"\bCR-\d+\b", ev.source_id, re.IGNORECASE):
+                referenced_tokens.add(cr.upper())
+
             # Check if this chunk resolves any tokens
             for category in ["INCIDENT", "CHANGE_REQUEST", "DOC_ID"]:
                 for token in extracted.get(category, set()):
                     if self.is_authoritative_resolution(token, ev):
                         resolved_tokens.add(token.upper())
 
-            # Also check if the source_id itself resolves an incident or document
-            resolved_tokens.add(ev.source_id.upper())
+            # Also check if source_id resolves an incident via authoritative resolution
             for inc in re.findall(r"\bINC-\d+\b", ev.source_id, re.IGNORECASE):
-                resolved_tokens.add(inc.upper())
+                if self.is_authoritative_resolution(inc, ev):
+                    resolved_tokens.add(inc.upper())
+
+            # Document code is resolved if chunk originates from that document
+            if ev.source_id.upper().startswith("DOC-"):
+                resolved_tokens.add(ev.source_id.upper())
 
         # Unresolved is the set difference of all referenced tokens minus authoritative resolutions
         unresolved = referenced_tokens - resolved_tokens
@@ -147,7 +166,7 @@ class EntityScanner:
                         )
                     )
 
-                # 2. Shared operational ticket identifiers (INC-402, CR-904)
+                # 2. Shared operational ticket identifiers
                 src_tokens = self.extract_references(src.content)
                 tgt_tokens = self.extract_references(tgt.content)
 
@@ -156,14 +175,13 @@ class EntityScanner:
                         tgt_tokens.get(category, set())
                     )
                     for token in shared:
-                        # Specific semantic edge for CAB rejection of CR-904
-                        if "DOC-NOVA-CAB" in src.source_id and "REJECTED" in src.content and "re-attempt" in tgt.content.lower():
+                        if "REJECTED" in src.content.upper() and ("re-attempt" in tgt.content.lower() or "emergency" in tgt.content.lower()):
                             edges.append(
                                 EvidenceEdge(
                                     source_evidence_id=src.evidence_id,
                                     target_evidence_id=tgt.evidence_id,
                                     relationship_type=RelationshipType.CONTRADICTS,
-                                    basis=f"CAB decision rejects proposed change request {token}",
+                                    basis=f"Authoritative decision rejects proposed change request {token}",
                                     derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
                                     confidence=1.0,
                                 )
@@ -180,18 +198,26 @@ class EntityScanner:
                                 )
                             )
 
-                # 3. Post-Mortem Rollback superseding Old Architecture
-                if "DOC-NOVA-INC-402" in src.source_id and "DOC-NOVA-ARCH-OLD" in tgt.source_id:
-                    if "rollback" in src.content.lower() and "redis" in tgt.content.lower():
-                        edges.append(
-                            EvidenceEdge(
-                                source_evidence_id=src.evidence_id,
-                                target_evidence_id=tgt.evidence_id,
-                                relationship_type=RelationshipType.SUPERSEDES,
-                                basis="Post-mortem rollback to Redis v5.4 invalidates superseded architecture specification",
-                                derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
-                                confidence=1.0,
-                            )
+                # 3. Post-Mortem Rollback superseding Old Specification
+                if "rollback" in src.content.lower() and ("arch" in tgt.source_id.lower() or "spec" in tgt.source_id.lower()):
+                    edges.append(
+                        EvidenceEdge(
+                            source_evidence_id=src.evidence_id,
+                            target_evidence_id=tgt.evidence_id,
+                            relationship_type=RelationshipType.SUPERSEDES,
+                            basis="Post-mortem rollback invalidates superseded architecture specification",
+                            derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
+                            confidence=1.0,
                         )
+                    )
+
+        # 4. Cross-Provider Temporal Supersession & State Opposition (Brick 4.2)
+        temporal_edges = TemporalConflictScanner.detect_temporal_relationships(evidence_list)
+        existing_keys = {(e.source_evidence_id, e.target_evidence_id, e.relationship_type) for e in edges}
+        for t_edge in temporal_edges:
+            key = (t_edge.source_evidence_id, t_edge.target_evidence_id, t_edge.relationship_type)
+            if key not in existing_keys:
+                edges.append(t_edge)
+                existing_keys.add(key)
 
         return edges
