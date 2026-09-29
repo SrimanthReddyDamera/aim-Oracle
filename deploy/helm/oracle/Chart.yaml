@@ -1,0 +1,15 @@
+apiVersion: v2
+name: oracle
+description: ORACLE Deployable Enterprise Operations & Distributed Control Plane Helm Chart
+type: application
+version: 4.6.0
+appVersion: "4.6.0"
+keywords:
+  - enterprise
+  - control-plane
+  - continuous-intelligence
+  - release-readiness
+home: https://oracle.corp.internal
+maintainers:
+  - name: ORACLE Architecture Team
+    email: oracle@corp.internal

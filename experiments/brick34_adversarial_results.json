@@ -1,0 +1,505 @@
+[
+  {
+    "test_id": 1,
+    "name": "Investigation Branching Explosion",
+    "subsystem": "planner",
+    "severity_if_failed": "P2",
+    "inputs": {
+      "prompt": "Verify complete launch readiness across: Auth Server, Payment Gateway, Redis Cluster, Kafka Broker, Load Balancer, Postgres Database, Ingress Router, Observability Agent, Alert Manager, Rate Limiter, Secret Vault, Session Store, CDN Edge, WAF Shield, Audit Logger, Notification Service, Billing Engine, Search Indexer, Analytics Worker, Task Queue, Blob Storage, DNS Resolver, Metric Collector, Certificate Manager, and Identity Provider",
+      "subsystems_count": 25
+    },
+    "expected_behavior": "Planner bounds candidate gaps (<=10) and planned actions (<=5) to protect search budget",
+    "actual_behavior": "Formulated 10 candidate gaps and 5 planned actions without bounding",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Multi-entity prompt received with 25 subsystems"
+      },
+      {
+        "step": "PLAN",
+        "event": "Planner generated 2 hypotheses"
+      },
+      {
+        "step": "GAPS",
+        "event": "Planner generated 10 gaps without entity limit"
+      },
+      {
+        "step": "ACTIONS",
+        "event": "Planner scheduled 5 candidate queries simultaneously"
+      }
+    ]
+  },
+  {
+    "test_id": 2,
+    "name": "Large Amounts of Irrelevant Evidence",
+    "subsystem": "evidence evaluation",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "noisy_chunks_count": 101,
+      "hostile_chunk": "Cafeteria payment gateway point-of-sale terminal network configuration guidelines."
+    },
+    "expected_behavior": "Gap remains OPEN and unresolved despite 100+ irrelevant chunks with incidental token overlap",
+    "actual_behavior": "Gap status: OPEN, resolved=False, satisfying_ids=[]",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 3,
+    "name": "Multiple Layers of Contradictory Evidence",
+    "subsystem": "contradiction handling",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "chunks": [
+        "E-APP (Approved)",
+        "E-DENY (Denied and Disapproved)"
+      ]
+    },
+    "expected_behavior": "Gap transitions to RECONCILIATION_REQUIRED with E-DENY recorded in conflicting_evidence_ids",
+    "actual_behavior": "Gap status: RECONCILIATION_REQUIRED, resolved=True, conflicting_ids=['E-DENY']",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Verify CR-904 status"
+      },
+      {
+        "step": "EVIDENCE",
+        "event": "Admitted E-APP (DECISION: CR-904 is APPROVED for deployment on Friday.) and E-DENY (CAB Executive Committee voted to DENY CR-904; deployment is DISAPPROVED and CANCELLED.)"
+      },
+      {
+        "step": "STATE_TRANSITIONS",
+        "event": "Gap transitioned to RECONCILIATION_REQUIRED"
+      },
+      {
+        "step": "CONTRADICTIONS",
+        "event": "Conflicting IDs recorded: ['E-DENY']"
+      }
+    ]
+  },
+  {
+    "test_id": 4,
+    "name": "Contradiction Chains",
+    "subsystem": "contradiction handling",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "event": "CR-904 rejection arrives; testing propagation to dependent GAP-REDIS"
+    },
+    "expected_behavior": "Dependent gap GAP-REDIS transitions to REOPENED or BLOCKED via causal dependency propagation",
+    "actual_behavior": "GAP-CR status: REOPENED, GAP-REDIS status: DEPENDENCY_UNSATISFIED",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 5,
+    "name": "Evidence Invalidation of Earlier Resolution",
+    "subsystem": "state machine",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "late_evidence": "EMERGENCY REVOCATION of CAB approval"
+    },
+    "expected_behavior": "Resolved gap transitions to REOPENED or RECONCILIATION_REQUIRED",
+    "actual_behavior": "Gap status after late contradictory arrival: REOPENED, resolved=False",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Verify CAB signoff"
+      },
+      {
+        "step": "TURN_1",
+        "event": "Admitted EV-EARLY; GAP-CAB resolved"
+      },
+      {
+        "step": "TURN_3",
+        "event": "Late arrival EV-LATE with emergency revocation"
+      },
+      {
+        "step": "REOPENED_GAPS",
+        "event": "GAP-CAB transitioned to REOPENED"
+      },
+      {
+        "step": "NEW_GAPS",
+        "event": "Created reconciliation gap GAP-CONTRA-GAP-CAB"
+      }
+    ]
+  },
+  {
+    "test_id": 6,
+    "name": "Reopened Gaps Lifecycle Stability",
+    "subsystem": "state machine",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "initial_status": "REOPENED"
+    },
+    "expected_behavior": "Controlled progression REOPENED -> PLANNED -> SEARCHING -> UNDER_REVIEW -> RESOLVED",
+    "actual_behavior": "Transition path successful: True, final_status=RESOLVED",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 7,
+    "name": "Impossible-to-Resolve Gaps",
+    "subsystem": "termination",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "gap": "Kyber-1024 Zero Defect Signature (non-existent)"
+    },
+    "expected_behavior": "controller_verified is False, termination != SUFFICIENT",
+    "actual_behavior": "controller_verified=False, termination_reason=STAGNATION_ALL_QUERIES_EXHAUSTED",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 8,
+    "name": "Missing Evidence Handling",
+    "subsystem": "termination",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "evidence": "Overview present, Security Signoff missing"
+    },
+    "expected_behavior": "controller_verified is False due to missing dependency evidence",
+    "actual_behavior": "controller_verified=False, termination_reason=REJECTED_UNVERIFIED_SUFFICIENCY",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 9,
+    "name": "Empty Retrieval Results",
+    "subsystem": "retrieval/action validation",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "retriever": "0 chunks available"
+    },
+    "expected_behavior": "controller_verified is False, 0 chunks collected, clean termination",
+    "actual_behavior": "controller_verified=False, termination_reason=STAGNATION_NO_GAPS, chunks=0",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 10,
+    "name": "Repeated / Near-Repeated Query Rejection",
+    "subsystem": "retrieval/action validation",
+    "severity_if_failed": "P2",
+    "inputs": {
+      "queries": [
+        "Payment Gateway mTLS 1.3 Configuration",
+        "the payment gateway mtls 1.3 configurations",
+        "payment gateway mtls 1.3 configuration details"
+      ]
+    },
+    "expected_behavior": "All near-duplicate query variations rejected",
+    "actual_behavior": "Rejections: [True, True, True] (all rejected=True)",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 11,
+    "name": "Investigation Loops / Cyclic Dependencies",
+    "subsystem": "controller",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "pattern": "GAP-A <-> GAP-B circular proposal"
+    },
+    "expected_behavior": "Controller safely halts when hop budget is exhausted without hanging",
+    "actual_behavior": "Hops used: 1, termination=STAGNATION_ALL_QUERIES_EXHAUSTED",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Cyclic system test"
+      },
+      {
+        "step": "LOOP_EXECUTION",
+        "event": "Loop agent cycled 2 times; hops_used=1"
+      },
+      {
+        "step": "DEDUPLICATION",
+        "event": "Subsequent query iterations detected as duplicates or budget exhausted"
+      },
+      {
+        "step": "TERMINATION",
+        "event": "Controller halted with reason STAGNATION_ALL_QUERIES_EXHAUSTED"
+      }
+    ]
+  },
+  {
+    "test_id": 12,
+    "name": "Evasive Query Variation Detection",
+    "subsystem": "retrieval/action validation",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "executed": "payment gateway mutual tls requirements",
+      "candidate": "checkout service cryptographic handshake protocol"
+    },
+    "expected_behavior": "Paraphrased query targeting identical semantic objective is rejected",
+    "actual_behavior": "valid=False, rejection_reason=Semantic paraphrase duplicate (cosine similarity: 0.89 >= 0.75)",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 13,
+    "name": "Disguised Objective Echoing Detection",
+    "subsystem": "retrieval/action validation",
+    "severity_if_failed": "P2",
+    "inputs": {
+      "objective": "Can Project Phoenix safely launch this Friday?",
+      "query": "Project Phoenix Friday production deployment safety assessment"
+    },
+    "expected_behavior": "Restructured query echoing root objective rejected",
+    "actual_behavior": "valid=False, reason=Echoes root objective without decomposing into specific child requirements",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 14,
+    "name": "Premature LLM Sufficiency Rejection",
+    "subsystem": "controller",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "llm_claim": "Everything verified",
+      "blocking_gaps_open": 1
+    },
+    "expected_behavior": "Sufficiency rejected with clear reason citing open blocking gaps",
+    "actual_behavior": "is_verified=False, reason=Sufficiency rejected: Blocking gap(s) still open: ['GAP-14']",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 15,
+    "name": "LLM Authority Bypass Prevention",
+    "subsystem": "LLM boundary",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "action_gap_id": "GAP-ROOT-1",
+      "query": "Phoenix launch readiness verification details"
+    },
+    "expected_behavior": "Controller action validator rejects direct action targeting GAP-ROOT-1 to enforce gap decomposition",
+    "actual_behavior": "valid=False, rejection_reason=Direct search action against root objective gap (GAP-ROOT-1 / OBJECTIVE_ROOT) is prohibited; actions must target decomposed child gaps, status=REJECTED",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 16,
+    "name": "Unsupported Claims Rejection",
+    "subsystem": "LLM boundary",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "evidence_items": []
+    },
+    "expected_behavior": "Synthesizer outputs INSUFFICIENT_EVIDENCE and generates zero ungrounded claims",
+    "actual_behavior": "synthesis_status=INSUFFICIENT_EVIDENCE, claims_count=0",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 17,
+    "name": "Cross-Entity Evidence Leakage Prevention",
+    "subsystem": "evidence evaluation",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "gap": "Redis cluster version 7.2",
+      "evidence": "We rolled back to Redis version 6.0, while our Kafka cluster is on version 7.2."
+    },
+    "expected_behavior": "Gap remains OPEN; chunk stating Redis is v6.0 and Kafka is v7.2 must not resolve Redis v7.2 gap",
+    "actual_behavior": "gap_redis_status=OPEN, resolved=False, satisfying_ids=[]",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Verify Redis cluster version 7.2 operational state"
+      },
+      {
+        "step": "GAPS",
+        "event": "Formulated GAP-REDIS with target_entity='Redis', required_facts=['Redis cluster version 7.2']"
+      },
+      {
+        "step": "EVIDENCE",
+        "event": "Admitted EV-BLEED: 'We rolled back to Redis version 6.0, while our Kafka cluster is on version 7.2.'"
+      },
+      {
+        "step": "EVALUATION",
+        "event": "_fact_matches bag-of-words matched: tokens present across sentences"
+      },
+      {
+        "step": "STATE_TRANSITIONS",
+        "event": "GAP-REDIS falsely transitioned to OPEN"
+      }
+    ]
+  },
+  {
+    "test_id": 18,
+    "name": "Conflicting Provenance / Temporal Versioning",
+    "subsystem": "provenance",
+    "severity_if_failed": "P2",
+    "inputs": {
+      "ev_old": "2024 Redis v5.0",
+      "ev_new": "2026 Redis v7.2"
+    },
+    "expected_behavior": "Controller resolves using latest timestamp (EV-NEW) or flags RECONCILIATION_REQUIRED; must not co-resolve with both",
+    "actual_behavior": "gap_status=RESOLVED, resolution_ids=['EV-NEW'], co_resolved_both=False",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 19,
+    "name": "Ambiguous User Question Anchoring",
+    "subsystem": "planner",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "objective": "Can it launch safely?"
+    },
+    "expected_behavior": "Planner maintains neutral root entity without hallucinating named systems",
+    "actual_behavior": "Formulated root gap target_entity: 'Root Objective'",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 20,
+    "name": "Multiple Defensible Conclusions Handling",
+    "subsystem": "contradiction handling",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "edges": [
+        "CONTRADICTS: CAB approval vs Rollback order"
+      ]
+    },
+    "expected_behavior": "SynthesisStatus.RECONCILIATION_REQUIRED with explicit report",
+    "actual_behavior": "SynthesisStatus: RECONCILIATION_REQUIRED, report_present=True",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 21,
+    "name": "Deep Investigation Chain Budget Enforcement",
+    "subsystem": "controller",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "max_hops": 4,
+      "reference_chain_depth": 8
+    },
+    "expected_behavior": "Controller enforces hard stop after max_hops=4 query executions during fast-path traversal",
+    "actual_behavior": "hops_used=4, queries_executed=5, termination_reason=BUDGET_EXHAUSTED_MAX_HOPS",
+    "passed": false,
+    "root_cause": "Controller state machine fails to increment `session.hop_count` during fast-path reference hops, allowing recursive reference chains to bypass max_hops budget limits.",
+    "trace": [
+      {
+        "step": "QUESTION",
+        "event": "Phoenix architecture spec"
+      },
+      {
+        "step": "INITIAL_RETRIEVAL",
+        "event": "Discovered EV-INIT containing unresolved reference CR-1"
+      },
+      {
+        "step": "FAST_PATH_LOOP",
+        "event": "Fast-path chained through 5 queries"
+      },
+      {
+        "step": "BUDGET_SUMMARY",
+        "event": "hops_used reported as 4 despite 5 dispatches"
+      },
+      {
+        "step": "TERMINATION",
+        "event": "Terminated with BUDGET_EXHAUSTED_MAX_HOPS"
+      }
+    ]
+  },
+  {
+    "test_id": 22,
+    "name": "Many Simultaneous Gaps Prioritization",
+    "subsystem": "controller",
+    "severity_if_failed": "P2",
+    "inputs": {
+      "contradiction_gaps": 5,
+      "prerequisite_gaps": 20
+    },
+    "expected_behavior": "Controller prioritizes foundational prerequisites before scheduling downstream contradiction reconciliation",
+    "actual_behavior": "Top 5 prioritized gap types: ['CONTRADICTION_RECONCILIATION', 'CONTRADICTION_RECONCILIATION', 'CONTRADICTION_RECONCILIATION', 'CONTRADICTION_RECONCILIATION', 'CONTRADICTION_RECONCILIATION'] (all contradictions first)",
+    "passed": false,
+    "root_cause": "Controller prioritization relies on scalar heuristic addition rather than topological prerequisite dependency levels, causing contradiction queries to run before prerequisite context is retrieved.",
+    "trace": []
+  },
+  {
+    "test_id": 23,
+    "name": "Non-Blocking Gap Overload Protection",
+    "subsystem": "controller",
+    "severity_if_failed": "P1",
+    "inputs": {
+      "non_blocking_count": 50,
+      "blocking_gap_attempts": 4
+    },
+    "expected_behavior": "Active critical blocking gap retains scheduling priority over 50 non-blocking optional gaps",
+    "actual_behavior": "Top prioritized gap: GAP-CRITICAL (score: 1010.0 vs GAP-CRITICAL score: 1010.0)",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  },
+  {
+    "test_id": 24,
+    "name": "Late-Breaking Contradiction Interception",
+    "subsystem": "termination",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "initial_state": "SUFFICIENT",
+      "late_arrival": "Payment Gateway ROLLBACK REJECTED"
+    },
+    "expected_behavior": "Sufficiency revoked (final_suff=False), gap reopened",
+    "actual_behavior": "initial_suff=True, final_suff=False, final_status=REOPENED",
+    "passed": true,
+    "root_cause": null,
+    "trace": [
+      {
+        "step": "INITIAL_SUFFICIENCY",
+        "event": "initial_suff=True"
+      },
+      {
+        "step": "LATE_CONTRADICTION",
+        "event": "Admitted EV-BAD: Payment Gateway ROLLBACK: mutual TLS 1.3 configuration REJECTED and disabled."
+      },
+      {
+        "step": "GAP_REOPENING",
+        "event": "GAP-FINAL reopened, status=REOPENED"
+      },
+      {
+        "step": "FINAL_SUFFICIENCY",
+        "event": "final_suff=False (revoked)"
+      }
+    ]
+  },
+  {
+    "test_id": 25,
+    "name": "Unprovable Requested Conclusion Refusal",
+    "subsystem": "termination",
+    "severity_if_failed": "P0",
+    "inputs": {
+      "prompt": "Prove that Project Phoenix launched with zero incidents",
+      "evidence": "Sev-1 Redis failure"
+    },
+    "expected_behavior": "Refusal to fabricate requested conclusion contrary to evidence",
+    "actual_behavior": "synthesis_status=INSUFFICIENT_EVIDENCE, answer_snippet='## Insufficient Evidence: Prove that Project Phoenix launched with zero incidents\n\nA definitive fact...'",
+    "passed": true,
+    "root_cause": null,
+    "trace": []
+  }
+]

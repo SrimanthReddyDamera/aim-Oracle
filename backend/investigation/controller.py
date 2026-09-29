@@ -16,33 +16,63 @@ EPISTEMIC INVARIANTS:
 from collections import Counter
 import re
 import time
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 import uuid
 
 from backend.evidence.models import Evidence
-from backend.investigation.entity_scanner import EntityScanner
+from backend.investigation.entity_scanner import (
+    CR_DECISION_PATTERN,
+    INCIDENT_RESOLUTION_PATTERN,
+    EntityScanner,
+)
 from backend.investigation.models import (
+    ActionStatus,
+    ActionType,
     AdaptiveRetrievalConfig,
+    ContradictionRecord,
     EdgeDerivationType,
     EvidenceEdge,
     EvidencePackage,
     GapStatus,
     GapType,
     InformationGap,
+    InvalidGapTransitionError,
+    InvestigationAction,
     InvestigationBudget,
     InvestigationEvent,
+    InvestigationHypothesis,
+    InvestigationPlan,
     InvestigationSession,
     InvestigationState,
     RelationshipType,
     RetrievalDecisionTelemetry,
+    VALID_GAP_TRANSITIONS,
 )
+from backend.investigation.evaluator import EntityScopedEvaluator
+from backend.investigation.planner import InvestigationPlanner
+from backend.investigation.polarity import OppositionEngine
+from backend.investigation.semantic_dedup import SemanticQueryDeduplicator
+from backend.investigation.dag import DependencyGraph
 from backend.retrieval.provider import EvidenceProvider
 from backend.core.security import redact_sensitive_data
 
 STOPWORDS = {
     "a", "an", "the", "is", "are", "was", "were", "and", "or", "in", "on", "at",
     "to", "for", "of", "with", "by", "from", "can", "what", "how", "this", "that",
-    "it", "its", "be", "do", "does", "did", "under", "before", "after"
+    "it", "its", "be", "do", "does", "did", "under", "before", "after", "we",
+    "should", "could", "would"
+}
+
+GENERIC_ENTITY_NOUNS = {
+    "SERVICE", "SERVICES", "COMPONENT", "COMPONENTS", "SYSTEM", "SYSTEMS",
+    "MODULE", "MODULES", "GATEWAY", "GATEWAYS", "APP", "SERVER", "DATABASE",
+    "DOCUMENT", "SPECIFICATION", "INTEGRATION", "TECHNICAL", "REQUIREMENTS"
+}
+
+GENERIC_REQ_WORDS = {
+    "VERIFY", "CHECK", "FIND", "REQUIREMENTS", "REQUIREMENT", "STATUS",
+    "OPERATIONAL", "DETAILS", "INFORMATION", "INFO", "STATE", "IDENTIFY",
+    "PROVIDE", "SEARCH"
 }
 
 GENERIC_PREREQ_PATTERN = re.compile(
@@ -73,17 +103,283 @@ class InvestigationController:
         self,
         retriever: EvidenceProvider,
         scanner: Optional[EntityScanner] = None,
+        planner: Optional[InvestigationPlanner] = None,
         budget: Optional[InvestigationBudget] = None,
         query_similarity_threshold: float = 0.70,
         adaptive_retrieval_config: Optional[AdaptiveRetrievalConfig] = None,
         max_batch_gaps: int = 1,
+        opposition_engine: Optional[OppositionEngine] = None,
+        evaluator: Optional[EntityScopedEvaluator] = None,
+        deduplicator: Optional[SemanticQueryDeduplicator] = None,
+        dag: Optional[DependencyGraph] = None,
     ):
         self.retriever = retriever
         self.scanner = scanner or EntityScanner()
+        self.planner = planner or InvestigationPlanner(scanner=self.scanner, jaccard_threshold=query_similarity_threshold)
         self.budget = budget or InvestigationBudget()
         self.query_similarity_threshold = query_similarity_threshold
         self.adaptive_config = adaptive_retrieval_config or AdaptiveRetrievalConfig()
         self.max_batch_gaps = max_batch_gaps
+        self.opposition_engine = opposition_engine or OppositionEngine()
+        self.evaluator = evaluator or EntityScopedEvaluator(scanner=self.scanner, opposition_engine=self.opposition_engine)
+        self.deduplicator = deduplicator or SemanticQueryDeduplicator(
+            semantic_threshold=0.75, lexical_threshold=query_similarity_threshold
+        )
+        self.dag = dag or DependencyGraph()
+
+    def transition_gap(
+        self,
+        gap: InformationGap,
+        target_status: GapStatus,
+        reason: str = "",
+        session: Optional[InvestigationSession] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Controller-owned gap state transition validator.
+        Enforces VALID_GAP_TRANSITIONS; rejects invalid transitions.
+        """
+        allowed = VALID_GAP_TRANSITIONS.get(gap.status, set())
+        if target_status not in allowed and target_status != gap.status:
+            raise InvalidGapTransitionError(
+                f"Invalid gap transition from {gap.status.value} to {target_status.value} for gap '{gap.gap_id}': {reason}"
+            )
+        old_status = gap.status
+        gap.status = target_status
+        gap.gap_version += 1
+        if session:
+            session.session_version += 1
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="GAP_TRANSITION",
+                    description=f"Gap '{gap.gap_id}' transitioned {old_status.value} -> {target_status.value}: {reason}",
+                    details={
+                        "gap_id": gap.gap_id,
+                        "from_status": old_status.value,
+                        "to_status": target_status.value,
+                        "reason": reason,
+                        **(metadata or {}),
+                    },
+                )
+            )
+        return True
+
+    def register_gap_dependency(
+        self,
+        session: InvestigationSession,
+        dependent_gap_id: str,
+        prerequisite_gap_id: Any,
+    ) -> bool:
+        """
+        Explicitly registers a directed prerequisite edge in the session gap DAG.
+        dependent_gap_id depends on prerequisite_gap_id.
+        Supports passing either a single gap_id or a collection of prerequisite gap_ids.
+        Validates graph structure (cycles, self-dependencies, nonexistent gaps).
+        """
+        if isinstance(prerequisite_gap_id, (list, set, tuple)):
+            all_ok = True
+            for pid in prerequisite_gap_id:
+                if not self.register_gap_dependency(session, dependent_gap_id, pid):
+                    all_ok = False
+            return all_ok
+
+        existing_ids = set(session.gaps.keys())
+        val_res = self.dag.add_dependency(dependent_gap_id, prerequisite_gap_id, existing_ids, session.gaps)
+        if not val_res.is_valid:
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="INVALID_DEPENDENCY_GRAPH",
+                    description=f"Dependency rejected ({val_res.error_type}): {val_res.error_message}",
+                    details=val_res.model_dump(),
+                )
+            )
+            return False
+
+        dep_gap = session.gaps.get(dependent_gap_id)
+        if dep_gap and dep_gap.unsatisfied_prerequisites:
+            if dep_gap.status != GapStatus.DEPENDENCY_UNSATISFIED:
+                try:
+                    self.transition_gap(
+                        dep_gap,
+                        GapStatus.DEPENDENCY_UNSATISFIED,
+                        reason=f"Prerequisite gap '{prerequisite_gap_id}' is unresolved",
+                        session=session,
+                    )
+                except InvalidGapTransitionError:
+                    dep_gap.status = GapStatus.DEPENDENCY_UNSATISFIED
+        return True
+
+    def propagate_dependency_invalidation(
+        self,
+        session: InvestigationSession,
+        invalidated_gap_id: str,
+        reason: str = "",
+    ) -> List[str]:
+        """
+        Topologically propagates invalidation down the DAG.
+        If gap A is invalidated / reopened / blocked / reconciliation_required,
+        all downstream gaps B that depend on A transition to DEPENDENCY_UNSATISFIED.
+        """
+        affected = self.dag.propagate_invalidation(invalidated_gap_id, session.gaps)
+        for gid in affected:
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="GAP_DEPENDENCY_UNSATISFIED",
+                    description=f"Gap '{gid}' marked DEPENDENCY_UNSATISFIED due to upstream invalidation of '{invalidated_gap_id}': {reason}",
+                    details={"invalidated_prereq": invalidated_gap_id},
+                )
+            )
+        return affected
+
+    def propagate_dependency_restoration(
+        self,
+        session: InvestigationSession,
+        resolved_gap_id: str,
+    ) -> List[str]:
+        """
+        Topologically propagates satisfaction down the DAG.
+        Downstream gaps only transition to OPEN when ALL prerequisites are satisfied.
+        """
+        restored = self.dag.propagate_restoration(resolved_gap_id, session.gaps)
+        for gid in restored:
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="GAP_DEPENDENCY_RESTORED",
+                    description=f"Gap '{gid}' restored to OPEN because all prerequisites (including '{resolved_gap_id}') are satisfied",
+                    details={"restored_by": resolved_gap_id},
+                )
+            )
+        return restored
+
+    def validate_action(
+        self,
+        action: InvestigationAction,
+        session: InvestigationSession,
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Controller-owned action validator.
+        Normalizes, validates, and deduplicates proposed search queries against query history.
+        Enforces controller authority: LLM cannot target root gap or gaps with unsatisfied prerequisites.
+        """
+        norm_q = self._normalize_query(action.query)
+        if not norm_q:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Empty search query"
+            return False, action.rejection_reason
+
+        tokens = self._tokenize_query(action.query)
+        if not tokens:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Query contains only stopwords"
+            return False, action.rejection_reason
+
+        if len(action.query) > 200:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Query exceeds maximum length of 200 characters"
+            return False, action.rejection_reason
+
+        # 1. Check duplicate / overlap against executed queries (Lexical)
+        is_dup, dup_reason = self.is_duplicate_or_overlapping_query(
+            action.query, session.query_history, threshold=self.query_similarity_threshold
+        )
+        if is_dup:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = dup_reason
+            return False, dup_reason
+
+        # Check duplicate against zero yield queries (Lexical)
+        is_zero_dup, zero_reason = self.is_duplicate_or_overlapping_query(
+            action.query, session.zero_yield_queries, threshold=0.75
+        )
+        if is_zero_dup:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = f"Near-duplicate of failed zero-yield query: {zero_reason}"
+            return False, action.rejection_reason
+
+        # Semantic query deduplication check (Paraphrase & Intent protection)
+        gap = session.gaps.get(action.gap_id)
+        sem_res = self.deduplicator.check_duplicate(
+            action.query,
+            session.query_history,
+            context={"gap": gap, "session": session, "objective": session.objective}
+        )
+        if sem_res.is_duplicate:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = sem_res.rejection_reason or f"Semantic paraphrase duplicate of '{sem_res.comparison_query}'"
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="SEMANTIC_QUERY_DEDUPLICATION_REJECTION",
+                    description=f"Action '{action.action_id}' rejected as semantic duplicate of '{sem_res.comparison_query}'",
+                    details=sem_res.model_dump(),
+                )
+            )
+            return False, action.rejection_reason
+
+        # 2. CONTROLLER AUTHORITY: Check root gap bypass and gap association
+        if action.gap_id == "GAP-ROOT-1":
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Direct search action against root objective gap (GAP-ROOT-1 / OBJECTIVE_ROOT) is prohibited; actions must target decomposed child gaps"
+            return False, action.rejection_reason
+
+        if action.gap_id not in session.gaps:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = f"Referenced gap '{action.gap_id}' does not exist in session"
+            return False, action.rejection_reason
+
+        associated_gap = session.gaps[action.gap_id]
+
+        if associated_gap.gap_type == GapType.OBJECTIVE_ROOT:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Direct search action against root objective gap (GAP-ROOT-1 / OBJECTIVE_ROOT) is prohibited; actions must target decomposed child gaps"
+            return False, action.rejection_reason
+
+        # DEPENDENCY INVARIANT: Disallow actions against gaps with unsatisfied prerequisites
+        if associated_gap.status == GapStatus.DEPENDENCY_UNSATISFIED:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = f"Associated gap '{action.gap_id}' has unsatisfied prerequisites: {associated_gap.unsatisfied_prerequisites}"
+            return False, action.rejection_reason
+
+        if associated_gap.status == GapStatus.RESOLVED:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = f"Associated gap '{action.gap_id}' is already RESOLVED"
+            return False, action.rejection_reason
+
+        # Check root objective echo (threshold 0.55 or containment of objective non-stopword tokens)
+        norm_obj = self._normalize_query(session.objective)
+        is_echo, _ = self.is_duplicate_or_overlapping_query(action.query, {norm_obj}, threshold=0.55)
+        if not is_echo:
+            obj_tokens = self._tokenize_query(session.objective)
+            act_tokens = self._tokenize_query(action.query)
+            if obj_tokens and act_tokens:
+                # Exclude target entity tokens so multi-word entities don't trigger false echo detection
+                ent_tokens: Set[str] = set()
+                if associated_gap and associated_gap.target_entity:
+                    ent_tokens = {t.lower() for t in self.evaluator.extract_entity_tokens(associated_gap.target_entity)}
+                obj_non_ent = {t for t in obj_tokens if t not in ent_tokens}
+                act_non_ent = {t for t in act_tokens if t not in ent_tokens}
+
+                if obj_non_ent and act_non_ent:
+                    overlap = len(obj_non_ent.intersection(act_non_ent))
+                    containment = overlap / min(len(obj_non_ent), len(act_non_ent))
+                    if containment >= 0.60 and overlap >= 2:
+                        is_echo = True
+                else:
+                    overlap = len(obj_tokens.intersection(act_tokens))
+                    containment = overlap / min(len(obj_tokens), len(act_tokens))
+                    if containment >= 0.70 and overlap >= 3:
+                        is_echo = True
+        if is_echo:
+            action.status = ActionStatus.REJECTED
+            action.rejection_reason = "Echoes root objective without decomposing into specific child requirements"
+            return False, action.rejection_reason
+
+        action.status = ActionStatus.APPROVED
+        return True, None
 
     def evaluate_adaptive_expansion(
         self,
@@ -194,10 +490,12 @@ class InvestigationController:
         session = InvestigationSession(
             session_id=str(uuid.uuid4())[:8],
             objective=objective,
+            hypotheses=[],
             discovered_evidence={},
             unresolved_references=set(),
             gaps={},
             detected_contradictions=[],
+            actions=[],
             query_history=set(),
             zero_yield_queries=set(),
             hop_count=0,
@@ -209,6 +507,30 @@ class InvestigationController:
             is_sufficient=False,
             termination_reason=None,
             investigation_trace=[],
+        )
+
+        # ----------------------------------------------------------------------
+        # PHASE 1: INVESTIGATION PLANNING (QUESTION -> HYPOTHESES & INITIAL GAPS)
+        # ----------------------------------------------------------------------
+        plan = self.planner.plan(
+            objective=objective,
+            priority_evaluator=lambda g: self.compute_gap_priority(g, session),
+        )
+        session.hypotheses = plan.hypotheses
+        for g in plan.gaps:
+            session.gaps[g.gap_id] = g
+
+        session.investigation_trace.append(
+            InvestigationEvent(
+                hop=0,
+                event_type="INVESTIGATION_PLANNED",
+                description=f"Investigation plan formulated with {len(plan.hypotheses)} hypotheses and {len(plan.gaps)} gaps",
+                details={
+                    "hypotheses": [h.statement for h in plan.hypotheses],
+                    "gaps": [g.gap_id for g in plan.gaps],
+                    "actions_planned": [a.query for a in plan.planned_actions],
+                },
+            )
         )
 
         # ----------------------------------------------------------------------
@@ -262,7 +584,9 @@ class InvestigationController:
         session.unresolved_references.update(unresolved)
         det_edges = self.scanner.detect_deterministic_edges(list(session.discovered_evidence.values()))
         self._derive_and_update_gaps(session, det_edges)
+        self._evaluate_all_gaps(session, [e.evidence_id for e, _ in final_candidates])
 
+        session.hop_count = 0
         session.investigation_trace.append(
             InvestigationEvent(
                 hop=0,
@@ -284,8 +608,58 @@ class InvestigationController:
         while True:
             elapsed_time = time.perf_counter() - start_time
 
-            # 1. Budget Checks
             if session.hop_count >= session.max_hops:
+                # Before terminating due to max hops, check if current evidence is sufficient
+                state_view = self._build_state_view(session)
+                is_ver, _ = self.verify_sufficiency(state_view, "Final hop sufficiency evaluation")
+                if is_ver:
+                    remaining_blocking = [
+                        g for g in session.gaps.values()
+                        if g.is_blocking and g.gap_id != "GAP-ROOT-1" and not g.resolved
+                    ]
+                    if not remaining_blocking:
+                        if "GAP-ROOT-1" in session.gaps:
+                            session.gaps["GAP-ROOT-1"].status = GapStatus.RESOLVED
+                        session.is_sufficient = True
+                        session.termination_reason = "SUFFICIENT"
+                        session.investigation_trace.append(
+                            InvestigationEvent(
+                                hop=session.hop_count,
+                                event_type="CONTROLLER_VERIFIED_SUFFICIENT",
+                                description="Controller verified factual sufficiency upon final hop evidence evaluation",
+                                details={"total_evidence": len(session.discovered_evidence)},
+                            )
+                        )
+                        break
+
+                # If not verified and LLM budget remains, allow reasoning agent one final synthesis call (no more retrievals)
+                if session.llm_call_count < session.max_llm_calls:
+                    session.llm_call_count += 1
+                    proposed_sufficient, rationale, candidate_gaps, proposed_edges = reasoning_agent_fn(state_view)
+                    if proposed_sufficient:
+                        self._evaluate_all_gaps(session, list(session.discovered_evidence.keys()))
+                        state_view = self._build_state_view(session)
+                        state_view.evidence_graph.extend(proposed_edges)
+                        is_ver_llm, _ = self.verify_sufficiency(state_view, rationale)
+                        remaining_blocking_llm = [
+                            g for g in session.gaps.values()
+                            if g.is_blocking and g.gap_id != "GAP-ROOT-1" and not g.resolved
+                        ]
+                        if is_ver_llm and not remaining_blocking_llm:
+                            if "GAP-ROOT-1" in session.gaps:
+                                session.gaps["GAP-ROOT-1"].status = GapStatus.RESOLVED
+                            session.is_sufficient = True
+                            session.termination_reason = "SUFFICIENT"
+                            session.investigation_trace.append(
+                                InvestigationEvent(
+                                    hop=session.hop_count,
+                                    event_type="CONTROLLER_VERIFIED_SUFFICIENT",
+                                    description="Controller verified factual sufficiency following agent proposal upon final hop",
+                                    details={"total_evidence": len(session.discovered_evidence)},
+                                )
+                            )
+                            break
+
                 session.termination_reason = "BUDGET_EXHAUSTED_MAX_HOPS"
                 break
             if session.llm_call_count >= session.max_llm_calls:
@@ -306,8 +680,29 @@ class InvestigationController:
                 is_dup, _ = self.is_duplicate_or_overlapping_query(dispatch_query, session.query_history)
 
                 if not is_dup:
+                    session.hop_count += 1
+                    fp_action = InvestigationAction(
+                        action_id=f"ACT-FASTPATH-{len(session.actions)+1:02d}",
+                        gap_id=target_gap.gap_id if target_gap else f"GAP-REF-{target_token}",
+                        action_type=ActionType.SEARCH,
+                        query=dispatch_query,
+                        reason=f"Fast-path query for unresolved token '{target_token}'",
+                        status=ActionStatus.APPROVED,
+                        created_at_hop=session.hop_count,
+                        executed_at_hop=session.hop_count,
+                    )
                     session.query_history.add(self._normalize_query(dispatch_query))
                     ref_results, _ = self.retriever.search(dispatch_query, k=4)
+                    fp_action.yield_chunk_count = len(ref_results)
+                    fp_action.status = ActionStatus.EXECUTED
+                    session.actions.append(fp_action)
+
+                    if target_gap:
+                        target_gap.attempted_actions.append(fp_action)
+                        target_gap.attempted_queries.append(dispatch_query)
+                        target_gap.attempt_count += 1
+                        self.transition_gap(target_gap, GapStatus.SEARCHING, reason="Fast-path dispatch", session=session)
+
                     fed_telem_fp = getattr(self.retriever, "get_last_telemetry", lambda: None)()
                     if fed_telem_fp:
                         session.investigation_trace.append(
@@ -342,6 +737,10 @@ class InvestigationController:
                         )
                     )
 
+                    if session.hop_count >= session.max_hops:
+                        session.termination_reason = "BUDGET_EXHAUSTED_MAX_HOPS"
+                        break
+
                     if new_chunks > 0:
                         continue
 
@@ -369,29 +768,31 @@ class InvestigationController:
             )
 
             # Ingest any novel candidate gaps from LLM proposal into session ledger
+            # Controller invariant: The LLM cannot directly set gap status to RESOLVED,
+            # and cannot propose/modify GAP-ROOT-1.
             for cg in candidate_gaps:
+                if cg.gap_id == "GAP-ROOT-1" or cg.gap_type == GapType.OBJECTIVE_ROOT:
+                    continue
+                if cg.status in [GapStatus.RESOLVED, GapStatus.RECONCILIATION_REQUIRED]:
+                    cg.status = GapStatus.OPEN
                 if cg.gap_id not in session.gaps:
                     cg.priority_score = self.compute_gap_priority(cg, session)
+                    cg.status = GapStatus.PLANNED
                     session.gaps[cg.gap_id] = cg
 
             # 4. CONTROLLER SUFFICIENCY VERIFICATION PROTOCOL
             if proposed_sufficient:
+                # Re-evaluate all gaps against all discovered evidence
+                self._evaluate_all_gaps(session, list(session.discovered_evidence.keys()))
+
                 state_view = self._build_state_view(session)
                 state_view.evidence_graph.extend(proposed_edges)
 
                 is_verified, reject_reason = self.verify_sufficiency(state_view, rationale)
                 if is_verified:
-                    # Re-evaluate all gaps against all discovered evidence
-                    self._evaluate_all_gaps(session, list(session.discovered_evidence.keys()))
-
                     remaining_blocking_open = [
                         g for g in session.gaps.values()
-                        if g.is_blocking and g.gap_id != "GAP-ROOT-1" and g.status in [
-                            GapStatus.OPEN,
-                            GapStatus.INVESTIGATING,
-                            GapStatus.UNRESOLVED,
-                            GapStatus.BLOCKED,
-                        ]
+                        if g.is_blocking and g.gap_id != "GAP-ROOT-1" and not g.resolved
                     ]
                     if remaining_blocking_open:
                         is_verified = False
@@ -426,33 +827,37 @@ class InvestigationController:
                         break
 
             # 5. SELECT ACTIONABLE GAPS TO EXECUTE
-            gaps_to_execute: List[Tuple[str, InformationGap]] = []
+            gaps_to_execute: List[Tuple[InvestigationAction, InformationGap]] = []
             seen_cand_ids: Set[str] = set()
             rejection_details: List[str] = []
 
             for cand in candidate_gaps:
                 cand_q = cand.targeted_query or f"{cand.target_entity} {cand.required_information}".strip()
-                if not cand_q:
-                    rejection_details.append(f"Rejected gap '{cand.gap_id}': Empty query")
-                    continue
-
-                is_dup, reason = self.is_duplicate_or_overlapping_query(
-                    cand_q, session.query_history, threshold=self.query_similarity_threshold
+                action = InvestigationAction(
+                    action_id=f"ACT-HOP{session.hop_count+1}-{len(session.actions)+1:02d}",
+                    gap_id=cand.gap_id,
+                    action_type=ActionType.SEARCH,
+                    query=cand_q,
+                    reason=f"Targeted query proposed for gap '{cand.gap_id}'",
+                    status=ActionStatus.PROPOSED,
+                    created_at_hop=session.hop_count + 1,
                 )
-                if is_dup:
-                    rejection_details.append(f"Rejected '{cand_q}': {reason}")
-                    continue
-
-                is_echo, _ = self.is_duplicate_or_overlapping_query(
-                    cand_q, {norm_obj}, threshold=0.80
-                )
-                if is_echo:
-                    rejection_details.append(f"Rejected '{cand_q}': Echoes root objective")
+                is_valid, reject_reason = self.validate_action(action, session)
+                if not is_valid:
+                    rejection_details.append(f"Rejected '{cand_q}': {reject_reason}")
+                    session.investigation_trace.append(
+                        InvestigationEvent(
+                            hop=session.hop_count + 1,
+                            event_type="ACTION_REJECTED",
+                            description=f"Controller rejected proposed action for gap '{cand.gap_id}': {reject_reason}",
+                            details={"query": cand_q, "gap_id": cand.gap_id, "reason": reject_reason},
+                        )
+                    )
                     continue
 
                 active_gap = session.gaps.get(cand.gap_id, cand)
-                active_gap.status = GapStatus.INVESTIGATING
-                gaps_to_execute.append((cand_q, active_gap))
+                self.transition_gap(active_gap, GapStatus.SEARCHING, reason=f"Executing action {action.action_id}", session=session)
+                gaps_to_execute.append((action, active_gap))
                 seen_cand_ids.add(cand.gap_id)
                 if len(gaps_to_execute) >= self.max_batch_gaps:
                     break
@@ -463,10 +868,19 @@ class InvestigationController:
                     if target_gap.gap_id in seen_cand_ids:
                         continue
                     fallback_q = target_gap.targeted_query or f"{target_gap.target_entity} {target_gap.required_information}".strip()
-                    is_dup_fb, _ = self.is_duplicate_or_overlapping_query(fallback_q, session.query_history, threshold=0.85)
-                    if not is_dup_fb:
-                        target_gap.status = GapStatus.INVESTIGATING
-                        gaps_to_execute.append((fallback_q, target_gap))
+                    fb_action = InvestigationAction(
+                        action_id=f"ACT-HOP{session.hop_count+1}-{len(session.actions)+1:02d}",
+                        gap_id=target_gap.gap_id,
+                        action_type=ActionType.SEARCH,
+                        query=fallback_q,
+                        reason=f"Controller fallback query for open gap '{target_gap.gap_id}'",
+                        status=ActionStatus.PROPOSED,
+                        created_at_hop=session.hop_count + 1,
+                    )
+                    is_valid_fb, fb_rej = self.validate_action(fb_action, session)
+                    if is_valid_fb:
+                        self.transition_gap(target_gap, GapStatus.SEARCHING, reason=f"Executing fallback action {fb_action.action_id}", session=session)
+                        gaps_to_execute.append((fb_action, target_gap))
                         if len(gaps_to_execute) >= self.max_batch_gaps:
                             break
                     else:
@@ -476,7 +890,7 @@ class InvestigationController:
                                 hop=session.hop_count + 1,
                                 event_type="GAP_BLOCKED",
                                 description=f"Gap '{target_gap.gap_id}' marked BLOCKED: all query angles exhausted",
-                                details={"gap_id": target_gap.gap_id},
+                                details={"gap_id": target_gap.gap_id, "reason": fb_rej},
                             )
                         )
 
@@ -488,9 +902,13 @@ class InvestigationController:
                     has_blocking_open = any(
                         g.is_blocking and g.gap_id != "GAP-ROOT-1" and g.status in [
                             GapStatus.OPEN,
+                            GapStatus.PLANNED,
+                            GapStatus.SEARCHING,
                             GapStatus.INVESTIGATING,
+                            GapStatus.UNDER_REVIEW,
                             GapStatus.UNRESOLVED,
                             GapStatus.BLOCKED,
+                            GapStatus.REOPENED,
                         ]
                         for g in session.gaps.values()
                     )
@@ -520,14 +938,19 @@ class InvestigationController:
                 break
 
             # 6. EXECUTE RETRIEVAL FOR ALL SELECTED GAPS IN BATCH
-            for selected_query, active_gap in gaps_to_execute:
-                norm_q = self._normalize_query(selected_query)
+            for active_action, active_gap in gaps_to_execute:
+                norm_q = self._normalize_query(active_action.query)
                 session.query_history.add(norm_q)
+                active_action.status = ActionStatus.EXECUTED
+                active_action.executed_at_hop = session.hop_count + 1
+                session.actions.append(active_action)
                 if active_gap:
-                    active_gap.attempted_queries.append(selected_query)
+                    active_gap.attempted_actions.append(active_action)
+                    active_gap.attempted_queries.append(active_action.query)
                     active_gap.attempt_count += 1
 
-                search_results, _ = self.retriever.search(selected_query, k=4)
+                search_results, _ = self.retriever.search(active_action.query, k=4)
+                active_action.yield_chunk_count = len(search_results)
                 fed_telem_step = getattr(self.retriever, "get_last_telemetry", lambda: None)()
                 if fed_telem_step:
                     session.investigation_trace.append(
@@ -542,21 +965,24 @@ class InvestigationController:
                 if not search_results:
                     session.zero_yield_queries.add(norm_q)
                     if active_gap:
-                        active_gap.status = GapStatus.UNRESOLVED
+                        if active_gap.attempt_count >= active_gap.max_attempts:
+                            active_gap.status = GapStatus.BLOCKED
+                        else:
+                            active_gap.status = GapStatus.UNRESOLVED
                     session.investigation_trace.append(
                         InvestigationEvent(
                             hop=session.hop_count + 1,
                             event_type="ACTIONABLE_GAP_EXECUTED",
-                            description=f"Actionable gap query '{selected_query}' executed (zero yield)",
-                            details={"query": selected_query, "gap_id": active_gap.gap_id if active_gap else "none", "is_zero_yield": True},
+                            description=f"Actionable gap query '{active_action.query}' executed (zero yield)",
+                            details={"query": active_action.query, "gap_id": active_gap.gap_id if active_gap else "none", "is_zero_yield": True},
                         )
                     )
                     session.investigation_trace.append(
                         InvestigationEvent(
                             hop=session.hop_count + 1,
                             event_type="ZERO_YIELD_SEARCH",
-                            description=f"Query '{selected_query}' yielded 0 results",
-                            details={"query": selected_query, "gap_id": active_gap.gap_id if active_gap else "none"},
+                            description=f"Query '{active_action.query}' yielded 0 results",
+                            details={"query": active_action.query, "gap_id": active_gap.gap_id if active_gap else "none"},
                         )
                     )
                 else:
@@ -572,24 +998,31 @@ class InvestigationController:
                     new_det_edges = self.scanner.detect_deterministic_edges(list(session.discovered_evidence.values()))
                     self._derive_and_update_gaps(session, new_det_edges)
 
-                    # Evaluate all gaps against newly admitted evidence
-                    self._evaluate_all_gaps(session, new_evidence_ids)
+                    retrieved_evidence_ids = [ev.evidence_id for ev, _ in search_results]
+
+                    # First evaluate the active_gap specifically against the chunks returned by its search
+                    if active_gap:
+                        self._evaluate_gap_resolution(active_gap, session, retrieved_evidence_ids)
+
+                    # Evaluate all gaps against newly admitted evidence (and include active_gap results)
+                    eval_ids = list(set(new_evidence_ids + (retrieved_evidence_ids if not new_evidence_ids else [])))
+                    self._evaluate_all_gaps(session, eval_ids)
 
                     session.investigation_trace.append(
                         InvestigationEvent(
                             hop=session.hop_count + 1,
                             event_type="ACTIONABLE_GAP_EXECUTED",
-                            description=f"Actionable gap query '{selected_query}' executed with {len(new_evidence_ids)} new chunk(s)",
-                            details={"query": selected_query, "gap_id": active_gap.gap_id if active_gap else "none", "is_zero_yield": False},
+                            description=f"Actionable gap query '{active_action.query}' executed with {len(new_evidence_ids)} new chunk(s)",
+                            details={"query": active_action.query, "gap_id": active_gap.gap_id if active_gap else "none", "is_zero_yield": False},
                         )
                     )
                     session.investigation_trace.append(
                         InvestigationEvent(
                             hop=session.hop_count + 1,
                             event_type="RETRIEVAL_ADMITTED",
-                            description=f"Query '{selected_query}' admitted {len(new_evidence_ids)} new chunk(s)",
+                            description=f"Query '{active_action.query}' admitted {len(new_evidence_ids)} new chunk(s)",
                             details={
-                                "query": selected_query,
+                                "query": active_action.query,
                                 "gap_id": active_gap.gap_id if active_gap else "none",
                                 "new_chunks": new_evidence_ids,
                                 "gap_status": active_gap.status.value if active_gap else "unknown",
@@ -673,15 +1106,22 @@ class InvestigationController:
                 "total_chunks_collected": len(session.discovered_evidence),
                 "elapsed_wall_time_ms": round(total_time_ms, 2),
             },
+            hypotheses=session.hypotheses,
+            actions=session.actions,
             evidence_items=list(session.discovered_evidence.values()),
             graph_edges=edges,
             gap_history=[
                 {
                     "gap_id": g.gap_id,
                     "description": g.description,
+                    "why_needed": g.why_needed,
+                    "evidence_requirement": g.evidence_requirement,
+                    "status": g.status.value if hasattr(g.status, "value") else str(g.status),
                     "query": g.targeted_query or (g.attempted_queries[-1] if g.attempted_queries else ""),
                     "resolved": g.resolved,
                     "resolution_evidence_ids": g.resolution_evidence_ids,
+                    "conflicting_evidence_ids": g.conflicting_evidence_ids,
+                    "resolution": g.resolution,
                 }
                 for g in all_gaps
             ],
@@ -695,14 +1135,41 @@ class InvestigationController:
     # DETERMINISTIC GAP PRIORITIZATION & RESOLUTION ENGINE
     # -------------------------------------------------------------------------
     def compute_gap_priority(self, gap: InformationGap, session: InvestigationSession) -> float:
-        crit = 1.0 if gap.is_blocking else 0.0
-        contra = 1.0 if gap.gap_type == GapType.CONTRADICTION_RECONCILIATION or gap.conflicting_evidence_ids else 0.0
-        depth = 1.0 if gap.gap_type in [GapType.PREREQUISITE, GapType.AUTHORITY_RESOLUTION] else 0.5
-        attempt_penalty = float(gap.attempt_count)
-        return (100.0 * crit) + (50.0 * contra) + (25.0 * depth) - (30.0 * attempt_penalty)
+        """
+        Hard-tiered priority computation.
+        Guarantees that blocking gaps (Tier 1) can NEVER be starved by non-blocking gaps (Tier 2),
+        regardless of attempt counts.
+        """
+        # Tier 1: Blocking Gaps (Base: 1000.0, Range: 950.0 - 1300.0)
+        # Tier 2: Non-blocking Gaps (Base: 100.0, Range: 50.0 - 150.0)
+        is_blocking = gap.is_blocking
+        base = 1000.0 if is_blocking else 100.0
+
+        # Contradiction / Reopened boost
+        contra_boost = 200.0 if (
+            gap.gap_type == GapType.CONTRADICTION_RECONCILIATION
+            or bool(gap.conflicting_evidence_ids)
+            or gap.status == GapStatus.REOPENED
+        ) else 0.0
+
+        # Leaf prerequisite boost (foundational gaps that unblock downstream dependents)
+        leaf_boost = 50.0 if (
+            gap.dependent_gap_ids
+            or gap.gap_type in [GapType.PREREQUISITE, GapType.AUTHORITY_RESOLUTION]
+        ) else 0.0
+
+        # Attempt penalty within tier (capped at -50.0 so tier boundaries are strictly preserved)
+        capped_attempts = min(gap.attempt_count, 5)
+        attempt_penalty = 10.0 * float(capped_attempts)
+
+        return base + contra_boost + leaf_boost - attempt_penalty
 
     def get_prioritized_open_gaps(self, session: InvestigationSession) -> List[InformationGap]:
-        active = [g for g in session.gaps.values() if g.status in [GapStatus.OPEN, GapStatus.UNRESOLVED]]
+        active = [
+            g for g in session.gaps.values()
+            if g.gap_id != "GAP-ROOT-1" and g.gap_type != GapType.OBJECTIVE_ROOT
+            and g.status in [GapStatus.OPEN, GapStatus.PLANNED, GapStatus.UNRESOLVED, GapStatus.REOPENED]
+        ]
         for g in active:
             g.priority_score = self.compute_gap_priority(g, session)
         active.sort(key=lambda g: g.priority_score, reverse=True)
@@ -723,6 +1190,12 @@ class InvestigationController:
         if not all_blocking_satisfied:
             return False
 
+        # TERM-INV-10: Evidence that was necessary for a resolved gap must exist in discovered_evidence
+        for g in blocking:
+            if g.gap_id != "GAP-ROOT-1" and g.status == GapStatus.RESOLVED:
+                if g.resolution_evidence_ids and not any(eid in session.discovered_evidence for eid in g.resolution_evidence_ids):
+                    return False
+
         if len(session.discovered_evidence) < 2:
             return False
 
@@ -733,23 +1206,39 @@ class InvestigationController:
             return False, f"Unresolved explicit reference(s) still pending: {list(state.unresolved_references)}"
 
         has_inferences = any(edge.derived_by == EdgeDerivationType.LLM_INFERENCE for edge in state.evidence_graph)
-        if has_inferences:
+        has_factual = any(edge.is_factual_proof for edge in state.evidence_graph)
+        if has_inferences and not has_factual:
             return False, "Sufficiency rejected: Evidence graph relies solely on LLM_INFERENCE edges."
 
-        has_cab_rejection = any(
-            ("DOC-NOVA-CAB" in e.source_id or "CAB" in e.source_id) and "REJECTED" in e.content.upper()
-            for e in state.accumulated_evidence.values()
-        )
-        has_postmortem = any(
-            "POST-MORTEM" in e.content.upper() or "INC-" in e.source_id
-            for e in state.accumulated_evidence.values()
-        )
-        if has_cab_rejection and not has_postmortem:
-            return False, "Sufficiency rejected: Change request was REJECTED by CAB but post-mortem not retrieved."
+        # Domain-agnostic check: Ensure no blocking gaps are unresolved in pending_gaps
+        blocking_pending = [g for g in state.pending_gaps if g.is_blocking and g.gap_id != "GAP-ROOT-1" and not g.resolved]
+        if blocking_pending:
+            return False, f"Sufficiency rejected: Blocking gap(s) still open: {[g.gap_id for g in blocking_pending]}"
 
-        has_stale_arch = any("ARCH" in e.source_id.upper() for e in state.accumulated_evidence.values())
-        if has_stale_arch and not has_postmortem:
-            return False, "Sufficiency rejected: Stale architecture specification present without superseding post-mortem rollback evidence."
+        # Domain-agnostic check: Ensure resolved blocking gaps have their satisfying evidence present in accumulated_evidence
+        for g in state.resolved_gaps:
+            if g.is_blocking and g.gap_id != "GAP-ROOT-1":
+                if g.resolution_evidence_ids and not any(eid in state.accumulated_evidence for eid in g.resolution_evidence_ids):
+                    return False, f"Sufficiency rejected: Resolved gap {g.gap_id} lacks supporting evidence in accumulated evidence."
+
+        # Domain-agnostic check: If the evidence graph contains an unresolved contradiction without superseding/reconciling resolution
+        contra_edges = [e for e in state.evidence_graph if e.relationship_type == RelationshipType.CONTRADICTS]
+        supersede_edges = [e for e in state.evidence_graph if e.relationship_type == RelationshipType.SUPERSEDES]
+        if contra_edges and not supersede_edges:
+            for c_edge in contra_edges:
+                has_reconciliation = any(
+                    ev.evidence_id not in (c_edge.source_evidence_id, c_edge.target_evidence_id)
+                    and (
+                        any(self.scanner.is_authoritative_resolution(token, ev)
+                            for token in self.scanner.extract_references(ev.content).get("INCIDENT", set())
+                            | self.scanner.extract_references(ev.content).get("CHANGE_REQUEST", set()))
+                        or bool(INCIDENT_RESOLUTION_PATTERN.search(ev.content))
+                        or bool(CR_DECISION_PATTERN.search(ev.content))
+                    )
+                    for ev in state.accumulated_evidence.values()
+                )
+                if not has_reconciliation:
+                    return False, "Sufficiency rejected: Unreconciled contradiction detected in evidence graph without superseding or authoritative resolution."
 
         if len(state.accumulated_evidence) < 2:
             return False, "Sufficiency rejected: Insufficient evidence chunks (< 2) collected."
@@ -774,12 +1263,22 @@ class InvestigationController:
         for ref in session.unresolved_references:
             gid = f"GAP-REF-{ref}"
             if gid not in session.gaps:
-                if ref.startswith("INC-"):
+                ref_category = self.scanner.classify_token(ref)
+                if ref_category == "INCIDENT":
                     targeted_q = f"{ref} current production state"
-                elif ref.startswith("CR-"):
+                elif ref_category == "CHANGE_REQUEST":
                     targeted_q = f"{ref} decision disposition"
+                elif ref_category == "REGULATION":
+                    targeted_q = f"{ref} compliance requirements"
+                elif ref_category == "DOC_ID":
+                    targeted_q = f"{ref} operational specification"
                 else:
                     targeted_q = ref
+
+                originating_chunks = [
+                    e.evidence_id for e in session.discovered_evidence.values()
+                    if ref in e.content or ref in e.source_id
+                ]
 
                 session.gaps[gid] = InformationGap(
                     gap_id=gid,
@@ -787,9 +1286,10 @@ class InvestigationController:
                     is_blocking=True,
                     description=f"Authoritative decision or resolution record for reference '{ref}'",
                     target_entity=ref,
-                    required_information=f"Status, disposition, or post-mortem of {ref}",
+                    required_information=f"Status, disposition, or resolution of {ref}",
                     targeted_query=targeted_q,
                     candidate_queries=[targeted_q],
+                    originating_evidence_ids=originating_chunks,
                     status=GapStatus.OPEN,
                 )
 
@@ -815,7 +1315,7 @@ class InvestigationController:
                             status=GapStatus.OPEN,
                         )
 
-            # Integration target specifications (e.g., Target: Project Phoenix Deployment)
+            # Integration target specifications (e.g., Target: Production Deployment)
             target_matches = GENERIC_INTEG_TARGET_PATTERN.findall(clean_content)
             if target_matches:
                 section_title = ev.metadata.get("section", "") if hasattr(ev, "metadata") and isinstance(ev.metadata, dict) else ""
@@ -850,7 +1350,7 @@ class InvestigationController:
                         session.gaps[gid] = InformationGap(
                             gap_id=gid,
                             gap_type=GapType.PREREQUISITE,
-                            is_blocking=True,
+                            is_blocking=False,
                             description=f"Operational capability enforcement: {clean_cap} for {clean_tgt}",
                             target_entity=clean_tgt,
                             required_information=f"Verify {clean_tgt} supports {clean_cap}",
@@ -875,12 +1375,127 @@ class InvestigationController:
                         status=GapStatus.OPEN,
                     )
 
+    def _check_gap_reopening(
+        self,
+        gap: InformationGap,
+        session: InvestigationSession,
+        new_evidence_ids: List[str],
+    ) -> bool:
+        """
+        Evaluate whether newly admitted evidence contradicts or invalidates
+        a previously RESOLVED gap using the semantic OppositionEngine and EntityScopedEvaluator.
+        If invalidated, controller reopens the gap and propagates invalidation down the DAG.
+        """
+        if gap.status != GapStatus.RESOLVED:
+            return False
+
+        # Reconciliation gaps resolved by authoritative records cannot be recursively reopened by earlier opposing evidence
+        if gap.gap_type == GapType.CONTRADICTION_RECONCILIATION:
+            return False
+
+        reopened = False
+
+        for eid in new_evidence_ids:
+            if eid in gap.resolution_evidence_ids or eid in gap.originating_evidence_ids:
+                continue
+            ev = session.discovered_evidence.get(eid)
+            if not ev:
+                continue
+
+            # Check if any resolution evidence supersedes this new evidence
+            is_superseded_by_resolution = False
+            has_contra_edge = False
+            for res_id in gap.resolution_evidence_ids:
+                if res_id == eid:
+                    continue
+                res_ev = session.discovered_evidence.get(res_id)
+                if res_ev:
+                    edges = self.scanner.detect_deterministic_edges([res_ev, ev])
+                    if any(edge.relationship_type == RelationshipType.SUPERSEDES and edge.source_evidence_id == res_ev.evidence_id for edge in edges):
+                        is_superseded_by_resolution = True
+                        break
+                    if any(edge.relationship_type == RelationshipType.CONTRADICTS for edge in edges):
+                        has_contra_edge = True
+
+            if is_superseded_by_resolution:
+                continue
+
+            eval_res = self.evaluator.evaluate_chunk(gap, ev)
+
+            if eval_res.opposition_found or has_contra_edge:
+                if eid not in gap.conflicting_evidence_ids:
+                    gap.conflicting_evidence_ids.append(eid)
+                reopened = True
+
+                # Record contradiction in session
+                contra_id = f"CONTRA-{gap.gap_id}-{eid}"
+                session.detected_contradictions.append(
+                    ContradictionRecord(
+                        contradiction_id=contra_id,
+                        claim_a_evidence_id=gap.resolution_evidence_ids[0] if gap.resolution_evidence_ids else "unknown",
+                        claim_b_evidence_id=eid,
+                        conflicting_subject=gap.target_entity or gap.description,
+                        basis=f"Evidence {eid} invalidates earlier resolution: {ev.content[:80]}",
+                        reconciled=False,
+                    )
+                )
+
+                # Formulate blocking reconciliation gap if not already a contradiction gap
+                contra_gap_id = f"GAP-CONTRA-{gap.gap_id}"
+                if contra_gap_id not in session.gaps and "CONTRA" not in gap.gap_id:
+                    session.gaps[contra_gap_id] = InformationGap(
+                        gap_id=contra_gap_id,
+                        gap_type=GapType.CONTRADICTION_RECONCILIATION,
+                        is_blocking=True,
+                        description=f"Reconcile invalidation of {gap.target_entity} by {eid}",
+                        why_needed=f"New evidence {eid} contradicts resolved state of {gap.gap_id}",
+                        evidence_requirement=f"Authoritative decision reconciling opposing claims for {gap.target_entity}",
+                        target_entity=gap.target_entity,
+                        required_information=f"Determine authoritative state of {gap.target_entity}",
+                        targeted_query=f"{gap.target_entity} authoritative resolution disposition",
+                        originating_evidence_ids=list(set(gap.resolution_evidence_ids + [eid])),
+                        status=GapStatus.OPEN,
+                    )
+                break
+
+        if reopened:
+            self.transition_gap(
+                gap,
+                GapStatus.REOPENED,
+                reason=f"Invalidated by contradictory evidence {gap.conflicting_evidence_ids}",
+                session=session,
+            )
+            self.propagate_dependency_invalidation(session, gap.gap_id, reason="Reopened due to contradictory evidence")
+            session.investigation_trace.append(
+                InvestigationEvent(
+                    hop=session.hop_count,
+                    event_type="GAP_REOPENED",
+                    description=f"Gap '{gap.gap_id}' REOPENED due to contradictory evidence",
+                    details={
+                        "gap_id": gap.gap_id,
+                        "conflicting_evidence_ids": gap.conflicting_evidence_ids,
+                    },
+                )
+            )
+
+        return reopened
+
     def _evaluate_all_gaps(self, session: InvestigationSession, new_evidence_ids: List[str]) -> None:
         if not new_evidence_ids:
             return
         for g in list(session.gaps.values()):
-            if g.status in [GapStatus.OPEN, GapStatus.INVESTIGATING, GapStatus.UNRESOLVED]:
+            if g.status in [
+                GapStatus.OPEN,
+                GapStatus.PLANNED,
+                GapStatus.SEARCHING,
+                GapStatus.INVESTIGATING,
+                GapStatus.UNDER_REVIEW,
+                GapStatus.UNRESOLVED,
+                GapStatus.REOPENED,
+            ]:
                 self._evaluate_gap_resolution(g, session, new_evidence_ids)
+            elif g.status == GapStatus.RESOLVED:
+                self._check_gap_reopening(g, session, new_evidence_ids)
 
     def _evaluate_gap_resolution(
         self,
@@ -891,6 +1506,20 @@ class InvestigationController:
         if not new_evidence_ids:
             return
 
+        valid_types = {
+            GapType.OBJECTIVE_ROOT,
+            GapType.AUTHORITY_RESOLUTION,
+            GapType.PREREQUISITE,
+            GapType.STATE_VERIFICATION,
+            GapType.CONTRADICTION_RECONCILIATION,
+        }
+        if gap.gap_type not in valid_types:
+            return
+
+        # TERM-INV-01 / TERM-INV-02: Root objective gap cannot be satisfied directly by an individual chunk
+        if gap.gap_id == "GAP-ROOT-1" or gap.gap_type == GapType.OBJECTIVE_ROOT:
+            return
+
         satisfying_ids: List[str] = []
         conflicting_ids: List[str] = []
 
@@ -899,46 +1528,57 @@ class InvestigationController:
             if not ev:
                 continue
 
-            content_up = ev.content.upper()
-            target_up = gap.target_entity.upper()
-
-            if gap.gap_type == GapType.AUTHORITY_RESOLUTION:
-                if self.scanner.is_authoritative_resolution(gap.target_entity, ev):
-                    satisfying_ids.append(eid)
-            elif gap.gap_type == GapType.PREREQUISITE:
-                if eid in gap.originating_evidence_ids:
-                    continue
-                target_tokens = set(re.findall(r"\b[A-Za-z0-9\-]+\b", target_up)) - STOPWORDS
-                if any(t in content_up for t in target_tokens) or target_up in ev.source_id.upper():
-                    satisfying_ids.append(eid)
-            elif gap.gap_type == GapType.CONTRADICTION_RECONCILIATION:
-                if eid in gap.originating_evidence_ids or "REJECTED" in content_up or "POST-MORTEM" in content_up or "ROLLBACK" in content_up:
-                    satisfying_ids.append(eid)
-            elif gap.gap_id == "GAP-ROOT-1":
-                # Root objective gap cannot be resolved by an individual chunk.
-                # It resolves only if all blocking prerequisite/authority gaps are resolved.
-                pass
-            else:
+            eval_res = self.evaluator.evaluate_chunk(gap, ev)
+            if eval_res.satisfies:
                 satisfying_ids.append(eid)
-
-            if "REJECTED" in content_up or "ROLLBACK" in content_up or "CONFLICT" in content_up:
+            if eval_res.opposition_found:
                 conflicting_ids.append(eid)
 
         if satisfying_ids:
-            gap.resolution_evidence_ids.extend(satisfying_ids)
+            # Temporal provenance conflict resolution for state verification:
+            # If multiple chunks satisfy state verification (e.g. Obsolete spec vs current production record),
+            # resolve using the latest timestamp chunk.
+            if gap.gap_type == GapType.STATE_VERIFICATION and len(satisfying_ids) > 1:
+                chunk_objects = [session.discovered_evidence[sid] for sid in satisfying_ids if sid in session.discovered_evidence]
+                timestamps = [getattr(c, "created_at", None) for c in chunk_objects if getattr(c, "created_at", None)]
+                if len(timestamps) > 1 and len(set(timestamps)) > 1:
+                    chunk_objects.sort(key=lambda c: getattr(c, "created_at", "") or "", reverse=True)
+                    satisfying_ids = [chunk_objects[0].evidence_id]
+
+            for sid in satisfying_ids:
+                if sid not in gap.resolution_evidence_ids:
+                    gap.resolution_evidence_ids.append(sid)
             gap.resolution_status = True
+            gap.resolution = f"Satisfied by evidence chunk(s): {', '.join(satisfying_ids)}"
             if conflicting_ids:
-                gap.conflicting_evidence_ids.extend(conflicting_ids)
+                for cid in conflicting_ids:
+                    if cid not in gap.conflicting_evidence_ids:
+                        gap.conflicting_evidence_ids.append(cid)
                 gap.status = GapStatus.RECONCILIATION_REQUIRED
+                self.propagate_dependency_invalidation(session, gap.gap_id, reason="Gap requires reconciliation due to contradictory evidence")
             else:
                 gap.status = GapStatus.RESOLVED
+                self.propagate_dependency_restoration(session, gap.gap_id)
+        else:
+            if gap.status in [GapStatus.SEARCHING, GapStatus.INVESTIGATING, GapStatus.UNDER_REVIEW]:
+                if conflicting_ids:
+                    for cid in conflicting_ids:
+                        if cid not in gap.conflicting_evidence_ids:
+                            gap.conflicting_evidence_ids.append(cid)
+                    gap.status = GapStatus.RECONCILIATION_REQUIRED
+                    self.propagate_dependency_invalidation(session, gap.gap_id, reason="Contradictory evidence detected during investigation")
+                elif gap.attempt_count >= gap.max_attempts:
+                    gap.status = GapStatus.BLOCKED
+                    self.propagate_dependency_invalidation(session, gap.gap_id, reason="Max attempts reached without resolution")
+                else:
+                    gap.status = GapStatus.UNRESOLVED
 
     # -------------------------------------------------------------------------
     # UTILITY HELPERS
     # -------------------------------------------------------------------------
     def _build_state_view(self, session: InvestigationSession) -> InvestigationState:
         edges = self.scanner.detect_deterministic_edges(list(session.discovered_evidence.values()))
-        open_g = [g for g in session.gaps.values() if g.status in [GapStatus.OPEN, GapStatus.UNRESOLVED]]
+        open_g = [g for g in session.gaps.values() if not g.resolved]
         res_g = [g for g in session.gaps.values() if g.resolved]
 
         return InvestigationState(

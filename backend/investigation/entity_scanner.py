@@ -16,17 +16,24 @@ from backend.investigation.models import (
 from backend.investigation.temporal_scanner import TemporalConflictScanner
 
 TOKEN_PATTERNS = {
-    "DOC_ID": re.compile(r"\bDOC-[A-Z0-9\-]+\b", re.IGNORECASE),
-    "INCIDENT": re.compile(r"\bINC-\d+\b", re.IGNORECASE),
-    "CHANGE_REQUEST": re.compile(r"\bCR-\d+\b", re.IGNORECASE),
-    "REGULATION": re.compile(r"\bREG-[A-Z0-9\-]+\b", re.IGNORECASE),
+    "DOC_ID": re.compile(r"\b(?:DOC|SPEC|ARCH|RFC|POL)-[A-Z0-9\-]+\b", re.IGNORECASE),
+    "INCIDENT": re.compile(r"\b(?:INC|INCIDENT|OUTAGE|ALERT|SEV)-\d+\b", re.IGNORECASE),
+    "CHANGE_REQUEST": re.compile(r"\b(?:CR|CHG|RFC|PR|MR)-\d+\b", re.IGNORECASE),
+    "REGULATION": re.compile(r"\b(?:REG|COMPLIANCE|SLA|POL|STANDARD)-[A-Z0-9\.]+\b", re.IGNORECASE),
     "VERSION": re.compile(r"\bv\d+\.\d+(?:\.\d+)?\b", re.IGNORECASE),
+    "GENERIC_TICKET": re.compile(r"\b[A-Z]{2,10}-\d+\b", re.IGNORECASE),
 }
 
-CR_DECISION_PATTERN = re.compile(
-    r"\b(?:cab\s+decision\s*:\s*(?:rejected|approved|deferred)|decision\s*:\s*(?:rejected|approved|deferred)|decision\s+record|meeting\s+#\d+\s+decision|disposition\s*:\s*(?:rejected|approved))\b",
-    re.IGNORECASE
+AUTHORITY_DECISION_PATTERN = re.compile(
+    r"\b(?:"
+    r"(?:(?:change|review|architecture|governance|board|advisory|cab|release)\s+)?decision\s*:\s*(?:rejected|approved|deferred|cancelled|accepted)|"
+    r"decision\s+record|"
+    r"meeting\s+#\d+\s+decision|"
+    r"disposition\s*:\s*(?:rejected|approved|deferred|cancelled|accepted)"
+    r")\b",
+    re.IGNORECASE,
 )
+CR_DECISION_PATTERN = AUTHORITY_DECISION_PATTERN
 
 
 INCIDENT_RESOLUTION_PATTERN = re.compile(
@@ -48,6 +55,18 @@ class EntityScanner:
     Distinguishes proposal/reference mentions from authoritative resolutions.
     """
 
+    @classmethod
+    def classify_token(cls, token: str) -> str:
+        """Classify entity or reference token into standard operational category."""
+        t_up = token.upper().strip()
+        for category in ["DOC_ID", "INCIDENT", "CHANGE_REQUEST", "REGULATION", "VERSION"]:
+            pattern = TOKEN_PATTERNS[category]
+            if pattern.fullmatch(t_up):
+                return category
+        if re.fullmatch(r"[A-Z]{2,10}-\d+", t_up):
+            return "GENERIC_TICKET"
+        return "UNKNOWN"
+
     def extract_references(self, text: str) -> Dict[str, Set[str]]:
         """Extract all operational entity tokens present in the given text."""
         found: Dict[str, Set[str]] = {}
@@ -64,31 +83,34 @@ class EntityScanner:
         """
         token_upper = token.upper()
         content = evidence.content
+        content_upper = content.upper()
+        source_upper = evidence.source_id.upper()
+        category = self.classify_token(token_upper)
 
         # Document code: resolved if this chunk originates from that document
-        if token_upper.startswith("DOC-"):
-            return token_upper in evidence.source_id.upper()
+        if category == "DOC_ID" or token_upper.startswith("DOC-"):
+            return token_upper in source_upper
 
-        # Change Request: resolved only if chunk contains authoritative decision/disposition
-        if token_upper.startswith("CR-"):
-            if token_upper in content.upper() or token_upper in evidence.source_id.upper():
-                if CR_DECISION_PATTERN.search(content) or "CAB DECISION" in content.upper() or "REJECTED" in content.upper() or "APPROVED" in content.upper():
+        # Change Request / Review ticket: resolved only if chunk contains authoritative decision/disposition
+        if category == "CHANGE_REQUEST" or token_upper.startswith("CR-"):
+            if token_upper in content_upper or token_upper in source_upper:
+                if AUTHORITY_DECISION_PATTERN.search(content) or "REJECTED" in content_upper or "APPROVED" in content_upper:
                     return True
             return False
 
         # Incident: resolved only if chunk explicitly provides current production state or active operational status
-        if token_upper.startswith("INC-"):
-            if token_upper in content.upper() or token_upper in evidence.source_id.upper():
+        if category == "INCIDENT" or token_upper.startswith("INC-"):
+            if token_upper in content_upper or token_upper in source_upper:
                 if (
                     INCIDENT_RESOLUTION_PATTERN.search(content)
-                    or "CURRENT PRODUCTION STATE" in content.upper()
+                    or "CURRENT PRODUCTION STATE" in content_upper
                 ):
                     return True
             return False
 
         # Regulations: resolved if full section clause is present in the source doc
-        if token_upper.startswith("REG-"):
-            if token_upper in content.upper() and ("COMPLIANCE" in evidence.source_id.upper() or "SLA" in evidence.source_id.upper()):
+        if category == "REGULATION" or token_upper.startswith("REG-"):
+            if token_upper in content_upper and ("COMPLIANCE" in source_upper or "SLA" in source_upper):
                 return True
 
         return False
@@ -110,24 +132,25 @@ class EntityScanner:
                 for token in extracted.get(category, set()):
                     referenced_tokens.add(token.upper())
 
-            # If the source_id itself references an incident or ticket, track as referenced
-            for inc in re.findall(r"\bINC-\d+\b", ev.source_id, re.IGNORECASE):
-                referenced_tokens.add(inc.upper())
-            for cr in re.findall(r"\bCR-\d+\b", ev.source_id, re.IGNORECASE):
-                referenced_tokens.add(cr.upper())
+            # If the source_id itself references an incident or change request, track as referenced
+            source_extracted = self.extract_references(ev.source_id)
+            for category in ["INCIDENT", "CHANGE_REQUEST"]:
+                for token in source_extracted.get(category, set()):
+                    referenced_tokens.add(token.upper())
 
-            # Check if this chunk resolves any tokens
             for category in ["INCIDENT", "CHANGE_REQUEST", "DOC_ID"]:
                 for token in extracted.get(category, set()):
                     if self.is_authoritative_resolution(token, ev):
                         resolved_tokens.add(token.upper())
 
-            # Also check if source_id resolves an incident via authoritative resolution
-            for inc in re.findall(r"\bINC-\d+\b", ev.source_id, re.IGNORECASE):
-                if self.is_authoritative_resolution(inc, ev):
-                    resolved_tokens.add(inc.upper())
+            for category in ["INCIDENT", "CHANGE_REQUEST"]:
+                for token in source_extracted.get(category, set()):
+                    if self.is_authoritative_resolution(token, ev):
+                        resolved_tokens.add(token.upper())
 
             # Document code is resolved if chunk originates from that document
+            for doc_token in source_extracted.get("DOC_ID", set()):
+                resolved_tokens.add(doc_token.upper())
             if ev.source_id.upper().startswith("DOC-"):
                 resolved_tokens.add(ev.source_id.upper())
 
@@ -175,13 +198,26 @@ class EntityScanner:
                         tgt_tokens.get(category, set())
                     )
                     for token in shared:
-                        if "REJECTED" in src.content.upper() and ("re-attempt" in tgt.content.lower() or "emergency" in tgt.content.lower()):
+                        src_opposes = any(term in src.content.upper() for term in ["REJECTED", "CANCELLED", "BLOCKED", "FAILED", "DISAPPROVED"]) or bool(AUTHORITY_DECISION_PATTERN.search(src.content))
+                        tgt_asserts_active = any(term in tgt.content.lower() for term in ["proposal", "pull request", "merge", "patch", "deploy", "implement", "request", "upgrade"]) or tgt.source_type in ["github", "jira"]
+                        if "SUPERSEDES" in src.content.upper():
+                            edges.append(
+                                EvidenceEdge(
+                                    source_evidence_id=src.evidence_id,
+                                    target_evidence_id=tgt.evidence_id,
+                                    relationship_type=RelationshipType.SUPERSEDES,
+                                    basis=f"Authoritative record explicitly supersedes prior disposition for {token}",
+                                    derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
+                                    confidence=1.0,
+                                )
+                            )
+                        elif src_opposes and tgt_asserts_active and not any(term in tgt.content.upper() for term in ["REJECTED", "CANCELLED", "BLOCKED"]):
                             edges.append(
                                 EvidenceEdge(
                                     source_evidence_id=src.evidence_id,
                                     target_evidence_id=tgt.evidence_id,
                                     relationship_type=RelationshipType.CONTRADICTS,
-                                    basis=f"Authoritative decision rejects proposed change request {token}",
+                                    basis=f"Authoritative decision opposes operational request {token}",
                                     derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
                                     confidence=1.0,
                                 )
@@ -198,14 +234,16 @@ class EntityScanner:
                                 )
                             )
 
-                # 3. Post-Mortem Rollback superseding Old Specification
-                if "rollback" in src.content.lower() and ("arch" in tgt.source_id.lower() or "spec" in tgt.source_id.lower()):
+                # 3. Incident Rollback / Operational Reversion superseding Prior Specification
+                src_is_rollback = any(term in src.content.lower() for term in ["rollback", "rolled back", "reverted", "decommissioned"]) or bool(INCIDENT_RESOLUTION_PATTERN.search(src.content))
+                tgt_is_spec = self.classify_token(tgt.source_id) == "DOC_ID" or any(term in tgt.source_id.lower() for term in ["spec", "arch", "policy", "standard", "design"])
+                if src_is_rollback and tgt_is_spec and src.source_id != tgt.source_id:
                     edges.append(
                         EvidenceEdge(
                             source_evidence_id=src.evidence_id,
                             target_evidence_id=tgt.evidence_id,
                             relationship_type=RelationshipType.SUPERSEDES,
-                            basis="Post-mortem rollback invalidates superseded architecture specification",
+                            basis="Operational incident disposition supersedes prior specification",
                             derived_by=EdgeDerivationType.DETERMINISTIC_REFERENCE,
                             confidence=1.0,
                         )

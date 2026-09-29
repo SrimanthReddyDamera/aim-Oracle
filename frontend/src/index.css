@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Backgrounds */
+  --color-ob:   #09090b;
+  --color-os1:  #111114;
+  --color-os2:  #18181c;
+
+  /* Borders */
+  --color-oline:  rgba(255,255,255,0.07);
+  --color-oline2: rgba(255,255,255,0.12);
+
+  /* Text */
+  --color-ot1: #f4f4f5;
+  --color-ot2: #71717a;
+  --color-ot3: #3f3f46;
+
+  /* Semantic */
+  --color-oaccent: #6366f1;
+  --color-ogreen:  #22c55e;
+  --color-oamber:  #f59e0b;
+  --color-ored:    #f43f5e;
+  --color-oblue:   #3b82f6;
+}
+
+html { scroll-behavior: smooth; background: #09090b; }
+
+body {
+  background-color: #09090b;
+  color: #f4f4f5;
+  font-family: 'Inter', ui-sans-serif, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(99,102,241,0.2);
+  color: #a5b4fc;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* ── Typography helpers ─────── */
+.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* ── Layout ────────────────── */
+.chapter-section {
+  position: relative;
+  min-height: 100vh;
+  padding-top: 128px;
+  padding-bottom: 128px;
+}
+
+/* ── Subtle grid pattern ────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+/* ── Micro-animations ──────── */
+@keyframes oa-ping {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes oa-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes oa-rotate {
+  to { transform: rotate(360deg); }
+}
+@keyframes oa-slide-up {
+  from { transform: translateY(4px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes oa-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.oa-ping     { animation: oa-ping  1.6s cubic-bezier(0,0,0.2,1) infinite; }
+.oa-blink    { animation: oa-blink 1.0s step-end infinite; }
+.oa-rotate   { animation: oa-rotate 28s linear infinite; }

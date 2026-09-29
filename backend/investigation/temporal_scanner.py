@@ -17,20 +17,20 @@ from backend.investigation.models import (
     RelationshipType,
 )
 
-# Standard operational states
+# Standard operational states aligned with opposition domains
 POSITIVE_STATES: Set[str] = {
-    "active", "deployed", "running", "enabled", "approved", "operational", "completed", "live"
+    "active", "deployed", "running", "enabled", "approved", "operational", "completed", "live", "valid", "passed", "accepted", "authorized"
 }
 
 NEGATIVE_STATES: Set[str] = {
     "disabled", "reverted", "rejected", "shutdown", "terminated", "failed",
-    "decommissioned", "rollback", "rolled back", "inactive", "stopped"
+    "decommissioned", "rollback", "rolled back", "inactive", "stopped", "cancelled", "denied", "revoked", "disapproved", "invalid"
 }
 
 # Regex to detect entity mentions (services, components, gateways, clusters, modules)
 # Supports hyphenated (auth-gateway) and 2-word space-separated (Billing cluster, Payment gateway) nouns
 ENTITY_PATTERN = re.compile(
-    r"\b(?:([a-zA-Z0-9\-_]{2,30}?(?:-service|-gateway|-engine|-cluster|-api|-broker|-db|-app))|([a-zA-Z0-9\-_]{2,20}\s+(?:gateway|service|cluster|engine|broker|component|database|module|pipeline|app)))\b",
+    r"\b(?:([a-zA-Z0-9\-_]{2,30}?(?:-service|-gateway|-engine|-cluster|-api|-broker|-db|-app))|([a-zA-Z0-9\-_]{2,20}\s+(?:gateway|service|cluster|engine|broker|component|database|module|pipeline|app))|([A-Z]{2,10}-\d{2,10}))\b",
     re.IGNORECASE
 )
 
@@ -59,7 +59,7 @@ class TemporalConflictScanner:
         """
         Determines domain-agnostic source authority tier:
         Tier 3: Approved Specifications, Architecture Policies, Merged Master Commits
-        Tier 2: Production Incident Reports, Post-Mortems, Change Requests, Resolved Tickets
+        Tier 2: Production Incident Reports, Incident Analyses, Change Requests, Resolved Tickets
         Tier 1: Draft PRs, Personal Branches, Unmerged Commits, Review Comments, Scratch
         """
         # 1. Check explicit metadata authority if present
@@ -97,7 +97,7 @@ class TemporalConflictScanner:
         raw_matches = ENTITY_PATTERN.findall(content)
         entities = set()
         for m in raw_matches:
-            ent = (m[0] or m[1]).strip()
+            ent = (m[0] or m[1] or m[2]).strip()
             if ent:
                 entities.add(ent)
         for ent in entities:
