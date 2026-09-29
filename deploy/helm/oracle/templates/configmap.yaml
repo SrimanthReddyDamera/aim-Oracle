@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "oracle.fullname" . }}-config
+  labels:
+    {{- include "oracle.labels" . | nindent 4 }}
+data:
+  ORACLE_ENV: {{ .Values.global.environment | quote }}
+  ORACLE_DEFAULT_TENANT: {{ .Values.global.defaultTenant | quote }}
+  ORACLE_DB_BACKEND: {{ .Values.database.backend | quote }}
+  ORACLE_DB_HOST: {{ .Values.database.host | quote }}
+  ORACLE_DB_PORT: {{ .Values.database.port | quote }}
+  ORACLE_DB_NAME: {{ .Values.database.name | quote }}
+  ORACLE_DB_USER: {{ .Values.database.user | quote }}
+  ORACLE_DB_SSL_MODE: {{ .Values.database.sslMode | quote }}
+  ORACLE_REDIS_ENABLED: {{ .Values.redis.enabled | quote }}
+  ORACLE_REDIS_HOST: {{ .Values.redis.host | quote }}
+  ORACLE_REDIS_PORT: {{ .Values.redis.port | quote }}
+  ORACLE_WEBHOOK_MAX_DRIFT: {{ .Values.webhook.maxDriftSeconds | quote }}
+  ORACLE_WEBHOOK_MAX_PAYLOAD: {{ .Values.webhook.maxPayloadBytes | quote }}
+  ORACLE_PROMETHEUS_ENABLED: {{ .Values.observability.prometheusEnabled | quote }}
+  ORACLE_TRACING_ENABLED: {{ .Values.observability.tracingEnabled | quote }}
+  ORACLE_OTEL_ENDPOINT: {{ .Values.observability.otelEndpoint | quote }}
+  ORACLE_TRACE_SAMPLE_RATE: {{ .Values.observability.sampleRate | quote }}

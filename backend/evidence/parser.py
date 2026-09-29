@@ -32,7 +32,7 @@ class MarkdownEvidenceParser:
     ) -> List[Evidence]:
         """
         Parse a document file from disk into Evidence objects.
-        If source_id is not specified, defaults to file.stem (e.g. DOC-NOVA-CAB).
+        If source_id is not specified, defaults to file.stem (e.g. DOC-POLICY-01).
         """
         path = Path(file_path)
         if not path.exists():

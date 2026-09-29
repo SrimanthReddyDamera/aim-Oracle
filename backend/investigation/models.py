@@ -12,7 +12,7 @@ EPISTEMIC INVARIANTS:
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 from pydantic import BaseModel, Field
 
 from backend.evidence.models import Evidence
@@ -60,12 +60,159 @@ class GapType(str, Enum):
 
 
 class GapStatus(str, Enum):
-    OPEN                    = "OPEN"                    # Identified and awaiting retrieval
-    INVESTIGATING           = "INVESTIGATING"           # Retrieval action in flight
+    OPEN                    = "OPEN"                    # Identified and awaiting planning/dispatch
+    PLANNED                 = "PLANNED"                 # Formulated with candidate query/action
+    SEARCHING               = "SEARCHING"               # Retrieval action in flight
+    INVESTIGATING           = "INVESTIGATING"           # Retrieval action in flight (backwards compatibility)
+    UNDER_REVIEW            = "UNDER_REVIEW"            # Evidence collected, evaluating criteria
     RESOLVED                = "RESOLVED"                # Sufficient uncontested evidence collected
     UNRESOLVED              = "UNRESOLVED"              # Attempted; chunks failed requirement
     RECONCILIATION_REQUIRED = "RECONCILIATION_REQUIRED" # Evidence found, but opposing claims detected
     BLOCKED                 = "BLOCKED"                 # Exhausted strategies; unanswerable in corpus
+    REOPENED                = "REOPENED"                # Later evidence invalidated earlier resolution
+    DEPENDENCY_UNSATISFIED  = "DEPENDENCY_UNSATISFIED"  # Upstream prerequisite gap is unresolved, blocked, or invalidated
+
+
+VALID_GAP_TRANSITIONS: Dict[GapStatus, Set[GapStatus]] = {
+    GapStatus.OPEN: {
+        GapStatus.PLANNED,
+        GapStatus.SEARCHING,
+        GapStatus.INVESTIGATING,
+        GapStatus.UNDER_REVIEW,
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.UNRESOLVED,
+        GapStatus.BLOCKED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.PLANNED: {
+        GapStatus.SEARCHING,
+        GapStatus.INVESTIGATING,
+        GapStatus.UNDER_REVIEW,
+        GapStatus.OPEN,
+        GapStatus.BLOCKED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.SEARCHING: {
+        GapStatus.UNDER_REVIEW,
+        GapStatus.UNRESOLVED,
+        GapStatus.BLOCKED,
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.INVESTIGATING: {
+        GapStatus.UNDER_REVIEW,
+        GapStatus.UNRESOLVED,
+        GapStatus.BLOCKED,
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.UNDER_REVIEW: {
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.UNRESOLVED,
+        GapStatus.BLOCKED,
+        GapStatus.OPEN,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.RESOLVED: {
+        GapStatus.REOPENED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.OPEN,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.UNRESOLVED: {
+        GapStatus.PLANNED,
+        GapStatus.SEARCHING,
+        GapStatus.INVESTIGATING,
+        GapStatus.UNDER_REVIEW,
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.BLOCKED,
+        GapStatus.OPEN,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.RECONCILIATION_REQUIRED: {
+        GapStatus.RESOLVED,
+        GapStatus.REOPENED,
+        GapStatus.BLOCKED,
+        GapStatus.UNDER_REVIEW,
+        GapStatus.SEARCHING,
+        GapStatus.INVESTIGATING,
+        GapStatus.OPEN,
+        GapStatus.PLANNED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.BLOCKED: {
+        GapStatus.OPEN,
+        GapStatus.PLANNED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.REOPENED: {
+        GapStatus.PLANNED,
+        GapStatus.SEARCHING,
+        GapStatus.INVESTIGATING,
+        GapStatus.UNDER_REVIEW,
+        GapStatus.RESOLVED,
+        GapStatus.RECONCILIATION_REQUIRED,
+        GapStatus.DEPENDENCY_UNSATISFIED,
+    },
+    GapStatus.DEPENDENCY_UNSATISFIED: {
+        GapStatus.PLANNED,
+        GapStatus.OPEN,
+        GapStatus.SEARCHING,
+        GapStatus.BLOCKED,
+        GapStatus.REOPENED,
+        GapStatus.RESOLVED,
+    },
+}
+
+
+class InvalidGapTransitionError(ValueError):
+    """Raised when an illegal gap state transition is attempted."""
+    pass
+
+
+# -----------------------------------------------------------------------------
+# HYPOTHESIS & ACTION MODELS
+# -----------------------------------------------------------------------------
+class InvestigationHypothesis(BaseModel):
+    """Working hypothesis formed during investigation planning."""
+    hypothesis_id: str
+    statement: str
+    status: str = "PROPOSED"  # PROPOSED, SUPPORTED, REFUTED, INCONCLUSIVE
+    supporting_evidence_ids: List[str] = Field(default_factory=list)
+    conflicting_evidence_ids: List[str] = Field(default_factory=list)
+    rationale: str = ""
+
+
+class ActionType(str, Enum):
+    SEARCH = "SEARCH"
+    EVALUATE = "EVALUATE"
+    RECONCILE = "RECONCILE"
+
+
+class ActionStatus(str, Enum):
+    PROPOSED = "PROPOSED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    EXECUTED = "EXECUTED"
+
+
+class InvestigationAction(BaseModel):
+    """Controller-governed targeted action tied to an originating InformationGap."""
+    action_id: str
+    gap_id: str
+    action_type: ActionType = ActionType.SEARCH
+    query: str
+    reason: str
+    status: ActionStatus = ActionStatus.PROPOSED
+    rejection_reason: Optional[str] = None
+    created_at_hop: int = 0
+    executed_at_hop: Optional[int] = None
+    yield_chunk_count: int = 0
 
 
 class InformationGap(BaseModel):
@@ -74,26 +221,69 @@ class InformationGap(BaseModel):
     Managed strictly by the Controller state machine.
     """
     gap_id: str
-    gap_type: GapType = GapType.OBJECTIVE_ROOT
+    gap_type: Union[GapType, str] = GapType.PREREQUISITE
     priority_score: float = 0.0                      # Deterministically computed by Controller
     is_blocking: bool = True                         # If True, must be resolved/reconciled for sufficiency
     description: str
+    why_needed: str = ""                             # Epistemic reason why this information is needed
+    evidence_requirement: str = ""                   # Specific evidence/facts required to resolve
     target_entity: str = ""                          # Generic entity token or component
     required_information: str = ""                   # Specific factual question to be proven
+    required_facts: List[str] = Field(default_factory=list) # Discrete factual requirements that must all be satisfied
     originating_evidence_ids: List[str] = Field(default_factory=list)
 
     status: GapStatus = GapStatus.OPEN
+    depends_on_gap_ids: List[str] = Field(default_factory=list) # Upstream prerequisite gap IDs required before this gap can be satisfied
+    dependent_gap_ids: List[str] = Field(default_factory=list)  # Downstream gap IDs that depend on this gap
+    unsatisfied_prerequisites: List[str] = Field(default_factory=list) # Currently unresolved or blocked upstream prerequisite gap IDs
+    related_hypothesis: Optional[str] = None
+    related_claim: Optional[str] = None
     attempt_count: int = 0
     max_attempts: int = 2
     attempted_queries: List[str] = Field(default_factory=list)
+    attempted_actions: List[InvestigationAction] = Field(default_factory=list)
     resolution_evidence_ids: List[str] = Field(default_factory=list)
     conflicting_evidence_ids: List[str] = Field(default_factory=list)
+    resolution: Optional[str] = None
+    provenance: Dict[str, Any] = Field(default_factory=dict)
+    gap_version: int = 0
 
     # Backwards compatibility attributes for earlier bricks
     candidate_queries: List[str] = Field(default_factory=list)
     priority: int = Field(default=1, ge=1, le=3)
     targeted_query: str = ""
     rationale: str = ""
+
+    def __init__(self, **data: Any):
+        if "why_needed" in data and not data.get("rationale"):
+            data["rationale"] = data["why_needed"]
+        elif "rationale" in data and not data.get("why_needed"):
+            data["why_needed"] = data["rationale"]
+        if "evidence_requirement" in data and not data.get("required_information"):
+            data["required_information"] = data["evidence_requirement"]
+        elif "required_information" in data and not data.get("evidence_requirement"):
+            data["evidence_requirement"] = data["required_information"]
+        if "evidence_references" in data and not data.get("resolution_evidence_ids"):
+            data["resolution_evidence_ids"] = data["evidence_references"]
+        if "conflicting_evidence_references" in data and not data.get("conflicting_evidence_ids"):
+            data["conflicting_evidence_ids"] = data["conflicting_evidence_references"]
+        super().__init__(**data)
+
+    @property
+    def evidence_references(self) -> List[str]:
+        return self.resolution_evidence_ids
+
+    @evidence_references.setter
+    def evidence_references(self, val: List[str]):
+        self.resolution_evidence_ids = val
+
+    @property
+    def conflicting_evidence_references(self) -> List[str]:
+        return self.conflicting_evidence_ids
+
+    @conflicting_evidence_references.setter
+    def conflicting_evidence_references(self, val: List[str]):
+        self.conflicting_evidence_ids = val
 
     @property
     def resolved(self) -> bool:
@@ -120,6 +310,14 @@ class InformationGap(BaseModel):
 InvestigationGap = InformationGap  # Full backward alias
 
 
+class InvestigationPlan(BaseModel):
+    """Investigation plan generated at investigation onset."""
+    objective: str
+    hypotheses: List[InvestigationHypothesis] = Field(default_factory=list)
+    gaps: List[InformationGap] = Field(default_factory=list)
+    planned_actions: List[InvestigationAction] = Field(default_factory=list)
+
+
 # -----------------------------------------------------------------------------
 # CONTRADICTION & SESSION MODELS (IN-MEMORY ONLY)
 # -----------------------------------------------------------------------------
@@ -142,6 +340,9 @@ class InvestigationSession(BaseModel):
     session_id: str
     objective: str
 
+    # Hypotheses
+    hypotheses: List[InvestigationHypothesis] = Field(default_factory=list)
+
     # Evidence Ledger
     discovered_evidence: Dict[str, Evidence] = Field(default_factory=dict)
     unresolved_references: Set[str] = Field(default_factory=set)
@@ -151,6 +352,7 @@ class InvestigationSession(BaseModel):
     detected_contradictions: List[ContradictionRecord] = Field(default_factory=list)
 
     # Action & Retrieval History
+    actions: List[InvestigationAction] = Field(default_factory=list)
     query_history: Set[str] = Field(default_factory=set)
     zero_yield_queries: Set[str] = Field(default_factory=set)
 
@@ -164,6 +366,7 @@ class InvestigationSession(BaseModel):
 
     is_sufficient: bool = False
     termination_reason: Optional[str] = None
+    session_version: int = 0
 
     # Audit Trail
     investigation_trace: List[Any] = Field(default_factory=list)
@@ -244,6 +447,8 @@ class EvidencePackage(BaseModel):
     termination_reason: str
     controller_verified: bool
     budget_summary: Dict[str, Any]
+    hypotheses: List[InvestigationHypothesis] = Field(default_factory=list)
+    actions: List[InvestigationAction] = Field(default_factory=list)
     evidence_items: List[Evidence]
     graph_edges: List[EvidenceEdge]
     gap_history: List[Dict[str, Any]]
@@ -251,3 +456,48 @@ class EvidencePackage(BaseModel):
     gaps: List[InformationGap] = Field(default_factory=list)
     retrieval_telemetry: Optional[RetrievalDecisionTelemetry] = None
     federated_telemetry: Optional[Dict[str, Any]] = None
+
+    def to_observable_dict(self) -> Dict[str, Any]:
+        """Expose structured investigation state for UI visualization and API consumers."""
+        return {
+            "objective": self.objective,
+            "controller_verified": self.controller_verified,
+            "termination_reason": self.termination_reason,
+            "budget_summary": self.budget_summary,
+            "hypotheses": [h.model_dump() for h in self.hypotheses],
+            "gaps": [
+                {
+                    "gap_id": g.gap_id,
+                    "gap_type": g.gap_type.value if hasattr(g.gap_type, "value") else str(g.gap_type),
+                    "status": g.status.value if hasattr(g.status, "value") else str(g.status),
+                    "priority_score": g.priority_score,
+                    "is_blocking": g.is_blocking,
+                    "description": g.description,
+                    "why_needed": g.why_needed,
+                    "evidence_requirement": g.evidence_requirement,
+                    "target_entity": g.target_entity,
+                    "resolution": g.resolution,
+                    "resolution_evidence_ids": g.resolution_evidence_ids,
+                    "conflicting_evidence_ids": g.conflicting_evidence_ids,
+                    "attempted_queries": g.attempted_queries,
+                    "provenance": g.provenance,
+                    "gap_version": g.gap_version,
+                }
+                for g in self.gaps
+            ],
+            "actions": [a.model_dump() for a in self.actions],
+            "evidence_items": [
+                {
+                    "evidence_id": e.evidence_id,
+                    "source_id": e.source_id,
+                    "source_path": e.source_path,
+                    "content_preview": e.content[:150],
+                    "content_hash": e.content_hash,
+                }
+                for e in self.evidence_items
+            ],
+            "graph_edges": [edge.model_dump() for edge in self.graph_edges],
+            "investigation_trace": [t.model_dump() for t in self.investigation_trace],
+            "retrieval_telemetry": self.retrieval_telemetry.model_dump() if self.retrieval_telemetry else None,
+            "federated_telemetry": self.federated_telemetry,
+        }

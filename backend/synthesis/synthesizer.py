@@ -151,10 +151,13 @@ class EvidenceSynthesizer:
                 continue
 
             # Verify semantic entailment against cited evidence
+            admitted_indices = set(range(1, len(evidence_map) + 1))
             entailed_ev_ids = []
             for eid in valid_ev_ids:
                 ev = evidence_map[eid]
-                is_entailed, _ = EntailmentVerifier.verify_claim_entailment(claim, ev)
+                is_entailed, _ = EntailmentVerifier.verify_claim_entailment(
+                    claim, ev, admitted_citation_indices=admitted_indices
+                )
                 if is_entailed:
                     entailed_ev_ids.append(eid)
 

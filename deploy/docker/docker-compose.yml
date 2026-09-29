@@ -1,0 +1,127 @@
+# =============================================================================
+# ORACLE Enterprise Runtime Local Docker Compose Topology (Brick 4.6)
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # --- Authoritative Durable Persistence ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: oracle-postgres
+    environment:
+      POSTGRES_DB: oracle_db
+      POSTGRES_USER: oracle_user
+      POSTGRES_PASSWORD: oracle_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oracle_user -d oracle_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Ephemeral Coordination Layer ---
+  redis:
+    image: redis:7-alpine
+    container_name: oracle-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Network Edge Ingress API ---
+  oracle-api:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: oracle-api
+    command: ["api"]
+    environment:
+      - ORACLE_ENV=development
+      - ORACLE_DB_BACKEND=postgres
+      - ORACLE_DATABASE_URL=postgresql://oracle_user:oracle_secure_password@postgres:5432/oracle_db
+      - ORACLE_REDIS_ENABLED=true
+      - ORACLE_REDIS_URL=redis://redis:6379/0
+      - ORACLE_WEBHOOK_SECRET=test_dev_webhook_secret_12345
+      - ORACLE_REQUIRE_HTTPS=false
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Distributed Worker Node 1 ---
+  oracle-worker-1:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: oracle-worker-1
+    command: ["worker"]
+    environment:
+      - ORACLE_ENV=development
+      - ORACLE_NODE_ID=worker-node-1
+      - ORACLE_DB_BACKEND=postgres
+      - ORACLE_DATABASE_URL=postgresql://oracle_user:oracle_secure_password@postgres:5432/oracle_db
+      - ORACLE_REDIS_ENABLED=true
+      - ORACLE_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Distributed Worker Node 2 ---
+  oracle-worker-2:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: oracle-worker-2
+    command: ["worker"]
+    environment:
+      - ORACLE_ENV=development
+      - ORACLE_NODE_ID=worker-node-2
+      - ORACLE_DB_BACKEND=postgres
+      - ORACLE_DATABASE_URL=postgresql://oracle_user:oracle_secure_password@postgres:5432/oracle_db
+      - ORACLE_REDIS_ENABLED=true
+      - ORACLE_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Distributed Scheduled Drift Subsystem ---
+  oracle-scheduler:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    container_name: oracle-scheduler
+    command: ["scheduler"]
+    environment:
+      - ORACLE_ENV=development
+      - ORACLE_DB_BACKEND=postgres
+      - ORACLE_DATABASE_URL=postgresql://oracle_user:oracle_secure_password@postgres:5432/oracle_db
+      - ORACLE_REDIS_ENABLED=true
+      - ORACLE_REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

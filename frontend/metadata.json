@@ -1,0 +1,8 @@
+{
+  "name": "Remix ORACLE — Investigation \u0026 Resolution Console",
+  "description": "AI-powered evidence-driven investigation and resolution intelligence platform for software engineering incidents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
